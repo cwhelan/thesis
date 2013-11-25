@@ -1,0 +1,105 @@
+\chapter{Extending Local Feature Based Models of SV Detection in a Discriminative Machine Learning Framework}\label{chap_crf}
+
+In my formulation of a general approach for SV prediction in the MapReduce framework, a crucial phase is the computation of a set of features for each genomic location. In my current implementation of Cloudbreak, these features are the parameters which are estimated by fitting a GMM to the distribution of insert sizes that span that location. However, the nature of these features are purposefully not specified in the algorithmic framework to allow flexibility in the implementation of the framework.
+
+Given a set of arbitrary features that encode information about a set of loci that are connected in a sequence, a natural approach is to apply techniques from machine learning to identify regions of interest in that sequence, rather than the heuristics and noise reduction techniques from signal processing that are used in the Cloudbreak implementation described in Chapter \ref{chap_cloudbreak_impl}. Discriminative machine learning techniques have been applied to SV detection in the packages forestSV~\cite{Michaelson:2012fj} and SVM$^2$~\cite{Chiara:2012ey}, and a form of generative modeling is applied to region features in SVMiner~\cite{Hayes:2012ia}. However, none of these tools use machine learning techniques that take into account the sequential nature of the data. 
+
+\section{SV Detection as a Sequence Labeling Problem}
+
+In the the algorithmic framework for solving the structural variation detection problem in MapReduce that we presented in Chapter \ref{chap_framework}, we reduced the problem to one of computing a set of features that described the short read evidence for SVs at each of a set of small regions along the genome. These are then transformed into variant calls by a function which examines the features along each chromosome of the reference sequentially and identifies contiguous blocks of regions with features values that combine to coherently indicate the presence of a variant. This latter part of the process, which we named the \textsc{Postprocess} function in Algorithm \ref{cb_algo}, can be thought of as a sequencing labeling problem based on sequence features. To take the example of deletion detection, we could define two labels: ``Deletion'' if the window participates in a deletion variant, and ``No Deletion'' if it does not. More formally, we can let $Y_i$ be the label at genomic window $i$, where $1 \le i \le n$ where $n$ is the number of windows in the chromosome. If we similarly name the features for genomic window $i$ $X_i$, we can then refer to the entire sequence of labels and features as $Y$ and $X$, respectively.
+
+The goal of fhe \textsc{Postprocess} function, can be broken down into two parts: first, to assign a label to each window in the reference sequence, and second, to consolidate neighboring windows with the same label into variant calls which affect larger regions. Using this model to think about the implementation of Cloudbreak described in Chapter \ref{chap_cloudbreak_impl}, we used a simple linear threshold on the likelihood ratio of the insert size data to label each window, and then consolidated neighboring windows with hand-tuned rules such as the median filter and restriction on the estimated mean of the second GMM component. These latter rules were made necessary by the noisy nature of the data and the simplicity of the window-labeling procedure. However, if we had a completely accurate window-labeling procedure, we could remove much of the complexity of the consolidation step. Since real world data is noisy, however, the best that we can do is to try to find the most likely sequence of labels given the observed data:
+
+\[ \argmax_Y P(Y|X) \]
+
+To acheive the goal of a more principled and more accurate window-labeling procedure we would need to be able to take into account information from multiple features, as well as the labels of nearby windows. In other words, the label of each window should be dependent not only on the observed features at that window but also on the labels of other windows nearby. Probabilistic graphical models provide a framework for defining and learning models that describe these types of dependencies. \todo{Describe PGMs here} One class of graphical model that has been used extensively for sequence labeling tasks in bioinformatics are Hidden Markov Models (HMMs). \todo{describe HMMs}
+
+\section{Integrating Features with Conditional Random Fields}
+
+To overcome these drawbacks of HMMs, we implemented a linear-chain conditional random field~\cite{Lafferty:2001:CRF:645530.655813} model to label genomic deletions. The model was developed using Factorie~\cite{mccallum09:factorie}. Factorie is a toolkit written in Scala that supports a wide variety of factor-graph based models, trainers, and tools, particularly for NLP tasks such as named entity recognition. Our Factorie-based implementation of a structural variation detection program consists of two parts: a modular and configurable set of code for data management of real and binary-valued features defined along the genome, along with conversions into into binary binned feature values and labels, and code to construct, train, and run inference on linear-chain CRF models. The code developed for this project was written in Scala and is available on GitHub at \url{http://github.com/cwhelan/svfactorie}. 
+
+\todo{Feature management. Integration of disparate tracks. Selection of windows. Cumulative vs discrete binning.}
+
+\todo{Model training}
+
+We developed a linear chain CRF model in Factorie. For optimization during training we use the LGBFS algorithm with L2 regularization. We have also experimented with other optimizers including the online AdaGrad regularized dual averaging algorithm \cite{Duchi:2011:ASM:1953048.2021068} with L1 regularization but did not see large differences in preliminary testing. To conduct inference we use the Viterbi max-product belief propogation algorithm.
+
+\section{Features for SV Detection}
+
+As described in Chapter \ref{chap_background}, there are three main signals available for SV detection in short read sequencing data sets: those that come from read pairing information, those that come from read depth, and those that come from split reads. The creation of a discriminative machine learning framework as described above can be used with any arbitrary set of features. Therefore it is possible to create feature sets that combine information from all three SV detection signals and integrate them into this framework. In addition, we can model interactions between features and use those in our predictions. Finally, the arbitrary nature of the feature function allows us to incorporate prior knowledge about given genomic regions, including sequence annotations. We have constructed a feature set that includes all of these types of features, as described below:
+
+\subsection{Read Pair Features}
+
+Read pair features are those that are based upon the inferred insert sizes and orientations linking paired reads, as described previously. We use the following RP features:
+
+\begin{itemize}
+
+\item The three features generated by Cloudbreak and described in Chapter~\ref{chap_cloudbreak_impl}: the log likelihood ratio of the insert sizes observed at each window in the two-component GMM fit vs. the likelihood under the expected normal distribution for the sample; the estimated mean $\mu$ of the second component of the two-component GMM, and $\alpha$, the estimated weight of the second component in the two-component GMM.
+
+\item Insert size change point features. 
+
+I simplified this code a little bit to only calculate segment likelihoods under a single dimensional normal distribution, since it didn't seem to make too much difference to the output. Zak, I'd be happy to discuss this further.
+\end{itemize}
+
+Split-read features:
+
+* When reads are aligned to the genome by short read mappers like BWA, they can in some cases be only partially aligned (somewhat equivalent to finding a local vs. global string alignment in the dynamic programming setting), leaving gaps at either end of the string. The aligners call this "soft clipping". This could potentially be indicative of a structural variation breakpoint disrupting the read's alignment to the reference. I created a feature track that counts the number of times a soft clip occurred in each 25bp genomic window.
+
+* For paired end reads, sometimes only one read in the pair can be successfully aligned to the genome. These are referred to as "singleton" alignments. Potentially a singleton alignment could indicate that the other read in the pair contains a variant that prevented it from being aligned, and therefore that a breakpoint could lie somewhere within the distance of the insert size. I count the number of singleton alignments in each window. Visually inspecting the data, and looking at the trained weights in my model, this doesn't seem like a very useful feature in practice.
+
+Read depth features:
+
+* I'm using now the average coverage depth of each base in each 25 bp window. Coverage depth is very noisy, unfortunately.
+
+* I've tried applying the change point detection algorithm we used with insert sizes to the coverage of each window as well, with a couple of segment sizes (it's hard to know what segment size to pick.)
+
+* Finally, since it's really drops in coverage that might indicate a breakpoint, I tried computing the drop in coverage for each window from the average coverage of its surrounding region.
+
+Genome annotations (these are represented as binary features):
+
+* Repetitive regions (the RepeatMasker track for the human genome).
+
+* Simple repeats: these are a subset of the repetitive regions that are made up of repeated k-mers of length 1 to around 4 or 5. These in particular wreak havoc with aligners. Also, many of the Venter variants occur in or near simple repeats.
+
+* Segmental duplications: These are larger regions (10kb+) that have at least one other copy in the genome with high sequence similarity between the two regions.
+
+I've been adding lots of features and hoping that the optimizer / regularizer will help to find the right ones. To that end, in addition to adding the features defined above to each bin, I also add as separate features: interaction terms for all of the features for the current bin, the features of the bins immediately preceding and after the current bin, and the features of the bins within a certain radius of the current bin (currently 7 neighboring bins).
+
+Figure \ref{crf_features_example} shows an example deletion from the NA18507 gold standard data set, along with tracks showing each of the features described above, as well as the original Cloudbreak call identifying the deletion and a call made by running inference on the trained CRF model.
+
+\begin{figure}
+\centering
+\includegraphics[width=.8\textwidth]{true_example_with_features.pdf}
+\caption{An example deletion from the NA18507 data set. The true deletion is shown in track 8. Features shown are in each track are: 1) Likelihood ratio of distribution of insert sizes. 2) Insert size change points. 3) Number of soft clipping events in each window. 4) Number of singleton mappings in each window. 5) Read coverage in each window. 6) Coverage change points. 7) Coverage drops. 11) Simple repeats. 12) Repeats. The original Cloudbreak call is shown in Track 13, and a call made by running inference in the CRF model is shown in Track 14.}
+\label{crf_features_example}
+\end{figure}
+
+
+\section{Improving Cloudbreak Calls with CRF Predictions}
+
+\section{Training and Evaluation}
+First, I had to decide what data to train and test on. Since we don't have complete annotations of real data sets available, I decided to try training on simulated data. For this, I took my original simulation of chromosome 2 that I did for my Cloudbreak paper and expanded it to a whole genome to try to get more training data, and make the problem a little harder. This simulation includes all of the insertions and deletions annotated for J. Craig Venter's genome. For deletions and insertions with a length over 40bp, there are 5,610 deletions and 6068 insertions. I simulated 30x coverage 100bp paired-end reads with an insert size of 300bp and realigned them to the genome using BWA, as I did for my earlier work. For my test set, I'm using the same data set for individual NA18507, which is 37X coverage with high-quality 100bp paired end reads with an insert size of 300bp. As in my previous work, I then divided both training and test sets into windows of 25bp and computed features for each window.
+
+I also had to choose what data from these sets to feed to the model for training and testing. I ended up creating training windows centered on all of simulated insertion and deletion variants, with flanking regions added on either end. In some runs I've also added all of the Cloudbreak deletion calls made at a very sensitive threshold, so that I could get a lot of false positives into the training set. 
+
+To pick regions to test on, I'm taking the approach of rapidly identifying candidate regions using a fast tool (Cloudbreak in this instance), adding flanking regions to them, and then running the CRF model on those candidate regions to try to label the true variants. This will of course limit the recall of the CRF approach to the recall of the candidate regions I pick but this strategy seemed like a more efficient one than trying to label the entire genome.
+
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{/Users/cwhelan/Documents/svpipeline/figures/NA18507_DELS_ROC_with_CRF.pdf}
+\caption{ROC curve showing the accuracy of Cloudbreak calls that have been verified and refined with conditional random field predictions (Cloudbreak-CRF)}
+\label{roc_NA18507_with_crf}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics[width=.8\textwidth]{/Users/cwhelan/Documents/svpipeline/figures/breakpointResolutionNA18507_withCRF.pdf}
+\caption{Breakpoint resolution of each tool's successful predictions on the NA18507 data set, including Cloudbreak calls which were verified and refined with CRF predictions (Cloudbreak-CRF)}
+\label{breakpoint_resolution_NA18507_with_crf}
+\end{figure}
+
+\section{Discussion}
+
+As an alternative to CRFs, I will also investigate the use of deep learning techniques such as sequential deep belief networks~\cite{andrew2012:sdbn}, which have been used successfully in sequence processing tasks in speech recognition and other domains.
+
+The outcome of this extension will be: the creation of a training, development, and test set, along with a feature generation scheme and description of the model used; an evaluation of the performance gains that can be achieved, with a comparison to other SV detection approaches; and a discussion of the benefits and drawbacks of using such an approach.

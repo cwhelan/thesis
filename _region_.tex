@@ -1,0 +1,147 @@
+\message{ !name(dissertation.tex)}% $Id: phd-thesis-proposal.tex,v 1.5 2008/10/22 12:32:30 rlunsford Exp $
+%
+\documentclass [11pt] {report}
+\usepackage{lscape}		% Allows tables and figures in landscape mode
+\usepackage{ohsu-thesis-proposal_3-2012}		% This package is the ohsu thesis style stuff
+% \brokenpenalty=100		% uncomment this to see bad word breaks at EOP
+% \usepackage{colortab}
+\usepackage{epsfig}			% This package allows encapsulated postscript
+\usepackage{subfigure}		% This package allows subfigures
+\usepackage{graphicx}
+\usepackage{footmisc}
+\usepackage{amssymb}
+%\usepackage[style=acm]{biblatex}
+%\renewbibmacro{in:}{%
+%  \ifentrytype{article}{}{%
+%  \printtext{\bibstring{in}\intitlepunct}}}
+%\addbibresource{nm.bib}
+
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{url}
+\usepackage{amsfonts}
+\usepackage{amsmath}
+
+\usepackage{multirow}
+
+
+\renewcommand\floatpagefraction{.9}
+\renewcommand\topfraction{.9}
+\renewcommand\bottomfraction{.9}
+\renewcommand\textfraction{.1}   
+\setcounter{totalnumber}{50}
+\setcounter{topnumber}{50}
+\setcounter{bottomnumber}{50}
+
+\newcommand{\ignore}[1]{}
+\newcommand{\rl}[1]{}
+\newcommand{\peter}[1]{}
+\newcommand{\hints}[1]{}
+%\newcommand{\todo}[1]{ **NOW: \emph{#1}**}
+%\newcommand{\todolater}[1]{ **LATER: \emph{#1}**}
+\newcommand{\todo}[1]{}
+\newcommand{\todolater}[1]{}
+
+\newcommand{\dcm}[1]{dialogue coordination mechanisms}
+
+\begin{document}
+
+\message{ !name(dissertation.tex) !offset(124) }
+
+
+\begin{algorithm}[h]
+\algrenewcommand\algorithmicprocedure{\textbf{job}}
+  \begin{algorithmic}[1]
+    \Procedure{Alignment}{}
+    \Function{Map}{$\textrm{ReadPairId }rpid, \textrm{ReadId }r, \textrm{ReadSequence }s, \textrm{ReadQuality }q$}
+    \ForAll{$ \textrm{Alignments }a \in \textsc{Align}(<s,q>)$}
+    \State $\textsc{Emit}(\textrm{ReadPairId }rpid, \textrm{Alignment }a)$
+    \EndFor
+    \EndFunction
+    \Function{Reduce}{$\textrm{ReadPairId }rpid, \textrm{Alignments }a_{1,2,\ldots}$}
+    \State $\textrm{AlignmentPairList }ap \gets \textsc{ValidAlignmentPairs}(a_{1,2,\ldots})$
+    \State $\textsc{Emit}(\textrm{ReadPairId }rp, \textrm{AlignmentPairList } ap)$
+    \EndFunction
+    \EndProcedure
+
+    \Procedure{Compute SV Features}{}
+    \Function{Map}{$\textrm{ReadPairId }rp, \textrm{AlignmentPairList }ap$}
+    \ForAll{$ \textrm{AlignmentPairs }<a_1,a_2>  \in ap$}
+    \ForAll{$ \textrm{GenomicLocations }l \in \textsc{Loci }(a_1,a_2)$}
+    \State $ \textrm{ReadPairInfo }rpi \gets <\textrm{InsertSize}(a_1,a_2), \textrm{AlignmentScore}(a_1,a_2)>$
+    \State $\textsc{Emit}(\textrm{GenomicLocation }l, \textrm{ReadPairInfo }rpi)$
+    \EndFor
+    \EndFor
+    \EndFunction
+    \Function{Reduce}{$\textrm{GenomicLocation }l, \textrm{ReadPairInfos }rpi_{1,2,\ldots}$}
+    \State $\textrm{SVFeatures } \phi_l \gets \Phi(\textrm{InsertSizes }i_{1,2,\ldots}, \textrm{AlignmentScores }q_{1,2,\ldots})$
+    \State $\textsc{Emit}(\textrm{GenomicLocation }l, \textrm{SVFeatures } \phi_l)$
+    \EndFunction
+    \EndProcedure
+
+    \Procedure{Call SVs}{}
+    \Function{Map}{$\textrm{GenomicLocation }l, \textrm{SVFeatures } \phi_l$}
+    \State $\textsc{Emit}(\textrm{Chromosome}(l), <l,\phi_l>)$
+    \EndFunction
+    \Function{Reduce}{$\textrm{Chromosome }c, \textrm{GenomicLocation } l_{1,2,\ldots},\phi_{1,2,\ldots}$}
+    \State $\textrm{StructuralVariationCalls } svs_c \gets \textsc{PostProcess }(\phi_{1,2,\ldots})$
+    \EndFunction
+    \EndProcedure
+  \end{algorithmic}
+\caption{The algorithmic framework for SV calling in MapReduce.}
+\label{cb_algo}
+\end{algorithm}
+
+
+% \input{cloudbreak-implementation}
+\chapter{Cloudbreak}
+Our Cloudbreak software package can be seen as an implementation of the general framework defined above. In particular, Cloudbreak implements the two user-defined function described above as follows:
+
+\begin{description}
+\item[\sc{Loci}] Because we are detecting deletions and short insertions, we map ReadPairInfos from each possible alignment to the genomic locations overlapped by the implied internal insert between the reads. For efficiency, we define a maximum detectable deletion size of 25,000bp, and therefore alignment pairs in which the ends are more than 25kb apart, or in the incorrect orientation, map to no genomic locations.
+\item[$\Phi$] To compute features for each genomic location, we follow \cite{Lee:2009da}, who observed that if all mappings are correct, the insert sizes implied by mappings which span a given genomic location should follow a Gaussian mixture model (GMM) whose parameters depend on whether a deletion or insertion is present at that locus (Supplementary Figure \ref{insert_size_mixes}). Briefly: if there is no indel, the insert sizes implied by spanning alignment pairs should follow the distribution of actual fragment sizes in the sample, which is typically modeled as normally distributed with mean $\mu$ and standard deviation $\sigma$. If there is a homozygous deletion or insertion of length $l$ at the location, $\mu$ should be shifted to $\mu + l$, while $\sigma$ will remain constant. Finally, in the case of a heterozygous event, the distribution of insert sizes will follow a mixture of two normal distributions, one with mean $\mu$, and the other with mean $\mu + l$, both with an unchanged standard deviation of $\sigma$, and mixing parameter $\alpha$ that describes the relative weights of the two components. Because the mean and standard deviation of the fragment sizes are selected by the experimenter and therefore known \emph{a priori} (or at least easily estimated based on a sample of alignments), we only need to estimate the mean of the second component at each locus, and the mixing parameter $\alpha$.
+
+To handle incorrect and ambiguous mappings, we assume that in general they will not form normally distributed clusters in the same way that correct mappings will, and therefore use an outlier detection technique to filter the observed insert sizes for each location. We sort the observed insert sizes and define as an outlier an observation whose $k$th nearest neighbor is more than $n\sigma$ distant, where $k = 3$ and $n = 5$. In addition, we rank all observations by the estimated probability that the mapping is correct and use an \emph{adaptive quality cutoff} to filter observations: we discard all observations where the estimated probability the mapping is correct is less than the score of the maximum quality observation minus a constant $c$. This allows the use of more uncertain mappings in repetitive regions of the genome while restricting the use of low-quality mappings in unique regions. Defining $\textsc{Mismatches}(a)$ to be the number of mismatches between a read and the reference genome in the alignment $a$, we approximate the probability $p^{k}_c$ of each end alignment being correct by:
+
+\[ p^{k}_c(a^{k}_{m,i}) = \frac{\exp({-\textsc{Mismatches}(a^{k}_{m,i})/2)}}{\sum_j{\exp(-\textsc{Mismatches}(a^{k}_{m,j})/2)}} \]
+
+And then multiply $p_c(a^{1}_{m,i})$ and $p_c(a^{2}_{m,i})$ to approximate the likelihood that the pair is mapped correctly.
+
+We fit the parameters of the GMM using the Expectation-Maximization algorithm. Let $Y = y_{1,2, \ldots m}$ be the observed insert sizes at each location after filtering, and say the library has mean fragment size $\mu$ with standard deviation $\sigma$. We initialize the two components to have means $\mu$ and $\bar{Y}$, set the standard deviation of both components to $\sigma$, and set $\alpha = .5$. In the E step, we compute for each $y_i$ and GMM component $j$ the value $\gamma_{i,j}$, which is the normalized likelihood that $y_i$ was drawn from component $j$. We also compute $n_j = \sum_i{\gamma_{i,j}}$, the relative contributions of the data points to each of the two distributions. In the M step, we update $\alpha$ to be $n_2 - \left|Y\right|$, and set the mean of the second component to be $\frac{\sum_m{\gamma_{m,2}y_m}}{n_2}$. We treat the variance as fixed and do not update it, since under our assumptions the standard deviation of each component should always be $\sigma$. We repeat the E and M steps until convergence, or until a maximum number of steps has been taken.
+
+The features generated for each location $l$ include the log-likelihood ratio of the filtered observed data points under the fit GMM to their likelihood under the distribution $N(\mu,\sigma)$, the final value of the mixing parameter $\alpha$, and $\mu'$, the estimated mean of the second GMM component.
+
+\item[\sc{PostProcess}] We convert our features along the genome to insertion and deletion calls by first extracting contiguous genomic loci where the log-likelihood ratio of the two models is greater than a given threshold. To eliminate noise we apply a median filter with window size 5. We end regions when $\mu'$ changes by more than 60bp ($2\sigma$), and discard regions where the average value of $\mu'$ is less than $\mu$ or where the length of the region differs from $\mu'$ by more than $\mu$.
+\end{description}
+
+% \input{evaluation}
+
+
+% \input{machine-learning}
+% \input{bp-analysis}
+% \input{summary}
+
+
+
+% The library likes numbers rather than the `alpha' style.
+\bibliographystyle{acm}
+% Single space the bibliography to save space.
+\begin{singlespace}
+\bibliography{thesis}
+\end{singlespace}
+%\printbibliography
+
+% The appendices are optional, but they must follow the references.
+%\appendix
+
+% This section (the final one) contains a biographical note.
+%
+%\vita
+%This section contains a biographical note.
+%The following information (in essay form) should be contained in this section:
+%place of birth; date of birth; schools attended; degrees awarded; areas of
+%special interest; relevant profession experience; awards and honors; list
+%of publications.
+
+\end{document}
+\message{ !name(dissertation.tex) !offset(-147) }
