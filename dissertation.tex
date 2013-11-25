@@ -74,6 +74,8 @@
 }
 \makeatother
 
+\DeclareMathOperator*{\argmax}{arg\,max}
+
 \begin{document}
 
 % Specify your title here. The "titleline" field should have no line breaks
@@ -162,7 +164,7 @@
 % Abstract
 %\input{abstract}
 \abstract{
-Genomic structural variations are an important class of genetic variants with a wide variety of functional impacts. The detection of structural variations using high-throughput short-read sequencing data is a difficult problem, with a lack of algorithm implementations that are able to provide the sensitivity and specificity required in research and clinical settings. Meanwhile, the increasing use of high-throughput sequencing is rapidly generating many large data sets, necessitating the development of algorithms that can provide results rapidly and scale to use available cloud and cluster infrastructures. MapReduce and Hadoop are becoming a standard for managing the distributed processing of large data sets, but existing structural variation detection approaches are difficult to translate into the MapReduce framework. I have developed a general framework for structural variation detection in MapReduce, and demonstrated its potential with Cloudbreak, an implementation that detects genomic deletions and insertions with greater accuracy and much faster runtimes than widely-used existing methods. Cloudbreak's formulation of the problem in terms of feature generation makes it amenable to machine learning techniques, which I will demonstrate in a new implementation. In addition to the development of Cloudbreak, I have developed pipelines using existing tools to identify, annotate, and analyze genomic DNA breakpoints within cancer samples and between species related by evolution. 
+Genomic structural variations are an important class of genetic variants with a wide variety of functional impacts. The detection of structural variations using high-throughput short-read sequencing data is a difficult problem, with a lack of algorithm implementations that are able to provide the sensitivity and specificity required in research and clinical settings. Meanwhile, the increasing use of high-throughput sequencing is rapidly generating many large data sets, necessitating the development of algorithms that can provide results rapidly and scale to use available cloud and cluster infrastructures. MapReduce and Hadoop are becoming a standard for managing the distributed processing of large data sets, but existing structural variation detection approaches are difficult to translate into the MapReduce framework. I have developed a general framework for structural variation detection in MapReduce, and demonstrated its potential with Cloudbreak, an implementation that detects genomic deletions and insertions with greater accuracy and much faster runtimes than widely-used existing methods. Cloudbreak's formulation of the problem in terms of feature generation makes it amenable to machine learning techniques, which I will demonstrate in a new implementation. In addition to the development of Cloudbreak, I have developed pipelines using existing tools to identify, annotate, and analyze genomic DNA breakpoints within cancer samples and between evolutionarily related species. 
 }
 
 % This is where the main body of the thesis starts
@@ -171,13 +173,16 @@ Genomic structural variations are an important class of genetic variants with a 
 %\setcounter{chapter}{6}
 
 % \input{introduction}
-\chapter{Introduction}
+\chapter{Introduction}\label{chap_introduction}
+
+\todo{comment from Lucia:I really don't like this sentence.
+Maybe something along these lines: "Every human cell carries the genetic information needed to accomplish specific biological program. Such information is included in two sets of 23 chromosomes, with each set containing approximately 3 billion DNA bases."}
 
 Every normal cell of every human being contains two sets of 23 chromosomes, with the chromosomes in each set holding approximately three billion chained nucleotides of DNA. This DNA contains the instructions that the cell uses to code for the proteins that ultimately specify the behavior of the cell, and in aggregate affect the characteristics of the individual to whom the cell belongs. The differences between the DNA of the cells in two individuals can explain differences in their physical characteristics, their risk of disease, and their population origin and evolutionary history. If one of the cells is cancerous, the differences in the DNA of two cells in one individual can explain the origin of their disease and potentially predict effective treatments.
 
 The aim of the field of \emph{genomics} is to understand the structure and function of the DNA of an organism or population of organisms, with the ultimate goal of understanding how the sequence of nucleotides that make up the genome affect the phenotypes of individuals. To do so, it is necessary to identify and understand all of the differences between the DNA from two samples, whether the samples come from two different individuals or two different tissues from the same individual. If the species has been widely studied, a \emph{reference genome} is often used in place of one of the samples. This allows variations between individuals to be canonically described as variations between the sample and the reference. Experiments of this type are known as \emph{resequencing} experiments.
 
-Assuming that a reference is used, or that the samples come from an individual or individuals from the same or closely related species, the majority of the DNA sequence will be the same between the two samples. In that case, variants can be categorized into one of several forms. The first is a difference of a single base of DNA at a particular location within the genome, or a single nucleotide variant (SNV). If the variation is shared between many individuals in a population, these are referred to as single nucleotide polymorphisms (SNPs). Another type of variation is the insertion or deletion of a small number of base pairs at a particular location, commonly referred to as \emph{indels}. A final category of variants are genomic \emph{structural variations} (SVs). This term describes variations that affect a large number of bases of DNA (in common usage at least 40 base pairs, ranging up to hundreds of megabases or entire chromosomes). SVs can take a variety of forms: strings of DNA can be deleted, inserted, duplicated, inverted, or translocated to a different chromosome. Because they can be large and frequent, SVs account for the majority of the bases that differ among normal human genomes~\cite{Mills:2011p1611, Conrad:2010ja}.
+Assuming that a reference is used, or that the samples come from an individual or individuals from the same or closely related species, the majority of the DNA sequence will be the same between the two samples. In that case, variants can be categorized into one of several forms. The first is a difference of a single base of DNA at a particular location within the genome, or a \emph{single nucleotide variant} (SNV). If the variation is shared between many individuals in a population, these are referred to as \emph{single nucleotide polymorphisms} (SNPs). Another type of variation is the insertion or deletion of a small number of base pairs at a particular location, commonly referred to as \emph{indels}. A final category of variants are genomic \emph{structural variations} (SVs). This term describes variations that affect a large number of bases of DNA (in common usage at least 40 base pairs, ranging up to hundreds of megabases or entire chromosomes). SVs can take a variety of forms: strings of DNA can be deleted, inserted, duplicated, inverted, or translocated to a different chromosome. Because they can be large and frequent, SVs account for the majority of the bases that differ among normal human genomes~\cite{Mills:2011p1611, Conrad:2010ja}.
 
 All of these types of variants can alter the function of a genome in different ways. SNVs can change the sequence of the proteins coded for by genes, sometimes altering their function and sometimes rendering them inactive, or they can alter regulatory elements and cause genes to be expressed at differing levels. Indels typically disrupt the function of a gene or regulatory element. SV's can cause a variety of functional changes, ranging from the deletion of exons to the formation of fusion genes such as the famous Brc-Abl Philadelphia chromosome in chronic myelogenous leukemia~\cite{Kurzrock:2003bz}. 
 
@@ -192,7 +197,7 @@ In fact, SV's are very common in some types of cancer, producing extremely rearr
 
 The current technology to detect genomic variations is massively parallel, high-throughput sequencing. This procedure involves amplifying the DNA from a sample and then shearing it into of small fragments. The ends of those fragments are then sequenced, producing hundreds of millions or billions of \emph{read pairs} for a sample using current, widely used instruments. The challenge of genomics is then to discover the variants present in the sample using only these short reads. By generating and sequencing enough fragments from a sample (quantified in terms of \emph{coverage}, the average number of reads that cover any one locus in the reference genome), the hope is that it should be possible to capture almost all of the important variants in a given sample. Current practices suggest that 30X average coverage depth is required to achieve accuracy in detecting SNVs. Even with this level of coverage, however, the task is made difficult by errors in the sequencing process, the fact that mammalian genomes are filled with repetitive sequences that make it difficult to ascertain the location in the genome that generated a particular read pair, and the computational challenges of analyzing the volume of data generated.
 
-While SNVs and indels can be characterized relatively well from sequencing data using current algorithmic approaches, the identification of SV's remains challenging. When the boundaries of an SV (the \emph{breakpoints}) fall within a read sequence, it can be difficult to map that read back to its point of origin in the reference sequence. In addition, SVs often arise within repetitive regions of the genome, further complicating the mapping effort. Although some approaches are based on searching for reads that contain breakpoints, it is often necessary to fall back on other signals present in the read set: the distance between successfully mapped read pairs, which should match the size of the fragments generated in the sequencing protocol, and the depth of reads that cover individual loci along the genome. Detection of SVs with current high-throughput sequencing technology remains a difficult problem, with limited concordance between available algorithms and high false discovery rates~\cite{Mills:2011p1611}.
+While SNVs and indels can be characterized relatively well from sequencing data using current algorithmic approaches, the identification of SV's remains challenging. SVs often arise within repetitive regions of the genome, making it difficult to align the reads surrounding them unambiguously to the reference genome. In addition, when the boundaries of an SV (the \emph{breakpoints}) fall within a read sequence, it can be difficult to map that read back to its point of origin in the reference sequence. Although some approaches are based on searching for reads that contain breakpoints, it is often necessary to fall back on other signals present in the read set: the distance between successfully mapped read pairs, which should match the size of the fragments generated in the sequencing protocol, and the depth of reads that cover individual loci along the genome. Detection of SVs with current high-throughput sequencing technology remains a difficult problem, with limited concordance between available algorithms and high false discovery rates~\cite{Mills:2011p1611}.
 
 While current approaches struggle with accuracy, they also often fail to consider speed and scalability. A 30X coverage data set for an individual sample, in compressed format with associated quality scores, is over 100GB of data to analyze. A typical bioinformatic pipeline includes steps to run quality control checks on the raw data; align the reads to the reference genome; perform filtering and recalibration steps after alignment; call SNVs and indels; and finally search for SVs. While a great deal of effort has been put into developing, optimizing, and parallelizing fast methods for alignment and variant calling, SV detection algorithms have not received the same attention, primarily because research in SV detection algorithms has focused on improving accuracy. As large scale sequencing projects like the 1000 Genomes Project and The Cancer Genome Atlas grow, the need for fast and accurate algorithms is becoming more apparent. DNA sequencing is already moving into the clinic, which will only exacerbate this requirement by requiring rapid analysis turnarounds for patients.
 
@@ -210,7 +215,7 @@ With this in mind, I have developed and evaluated methods for SV detection in th
 
 A preliminary version of parts of this work was peer-reviewed and accepted for oral presentation at the Third Annual RECOMB Satellite Workshop On Massively Parallel Sequencing (RECOMB-seq), and an expanded version of that paper is in the process of being submitted for journal publication. A preliminary breakpoint analysis was published in~\cite{Capozzi:2012bb}.
 
-\chapter{Background}
+\chapter{Background}\label{chap_background}
 
 \section{Structural Variations}
 
@@ -219,7 +224,7 @@ A preliminary version of parts of this work was peer-reviewed and accepted for o
 \section{Sequencing Analysis Pipelines}
 
 % \input{related-work}
-\chapter{Related Work}
+\chapter{Related Work}\label{chap_related_work}
 
 \section{Structural Variant Calling from High-Throughput Short-Read Sequencing Data}
 
@@ -229,7 +234,7 @@ Recent publications have divided the majority of popular SV detection algorithms
 
 Most read pair approaches begin by separating paired end mappings onto the reference genome into those that are \emph{concordant} and those that are \emph{discordant}. Discordant mappings deviate from the expected insert size or orientation of the fragment. These approaches then cluster the discordant mappings to find SVs with support from multiple discordantly mapped read pairs. Many of these approaches use only reads that are unambiguously mapped to the reference genome; this has the advantage of using the same set of alignments that are used for calling SNVs and indels in most sequencing pipelines. The BreakDancerMax component of BreakDancer~\cite{Chen:2009p3} is probably the most widely used of these algorithms. BreakDancer looks for regions of the genome that anchor more anomalous read pairs than expected according to its model; if two of these regions are connected by a minimum number of discordant read pairs, it calls an SV that links them. GASV~\cite{Sindi:2009gu}, PEMer~\cite{Korbel:2009dy}, and SVDetect~\cite{Zeitouni:2010p8} all operate on similar principles, differing primarily in the method used to cluster discordant read pairs that support the same potential SV call.
 
-A second group of RP methods attempt to including discordant read pairs which cannot be unambiguously mapped to the reference genome in their analysis, in an attempt to improve sensitivity in repetitive regions of the genome. One approach to incorporating this type of information can be found in \emph{soft clustering} algorithms, which attempt to assign each ambiguously mapped read pair to one of its mappings such that it clusters with other discordant read pairs. These approaches include VariationHunter~\cite{Hormozdiari:2009p284}, which attempts to assign reads by optimizing to a maximum parsimony explanation of all discordant reads; HYDRA~\cite{Quinlan:2010gf}, which takes a similar approach based on heuristics, and GASVPro~\cite{Sindi:2012kk}, which uses a Markov-Chain Monte Carlo sampling strategy to assign a read to its correct mapping. Even so, however, most methods use only a limited number of ambiguous discordant mappings per read pair, in part because of the storage and computational requirements necessary to process all or most ambiguous mappings of each read pair in a high-coverage data set.
+A second group of RP methods attempt to include discordant read pairs which cannot be unambiguously mapped to the reference genome in their analysis, in an effort to improve sensitivity in repetitive regions of the genome. One approach to incorporating this type of information can be found in \emph{soft clustering} algorithms, which assign each ambiguously mapped read pair to one of its mappings such that it clusters with other discordant read pairs. These approaches include VariationHunter~\cite{Hormozdiari:2009p284}, which allocates ambiguously mapped reads by optimizing to a maximum parsimony explanation of all discordant reads; HYDRA~\cite{Quinlan:2010gf}, which takes a similar approach based on heuristics, and GASVPro~\cite{Sindi:2012kk}, which uses a Markov-Chain Monte Carlo sampling strategy to assign a read to its correct mapping. Even so, however, most methods use only a limited number of ambiguous discordant mappings per read pair, in part because of the storage and computational requirements necessary to process all or most ambiguous mappings of each read pair in a high-coverage data set.
 
 Finally, CLEVER~\cite{Marschall:2012ek} took an alternative approach and showed that rather than classifying pairs as concordant or discordant and considering only those that are discordant, considering the distribution of all insert sizes allows the detection of smaller events. 
 
@@ -255,7 +260,7 @@ While AS approaches can theoretically identify any type of SV, in practice assem
 
 \subsection{Hybrid Approaches}
 
-Recently, approaches have started to appear that attempt to combine multiple signals in order to improve accuracy. These fall into two groups: those that attempt to independently execute more than one of the basic approaches described above and then integrate the results, and those that explicitly create new algorithms to process multiple signals simultaneously.
+Recently, approaches have started to appear that try to combine multiple signals in order to improve accuracy. These fall into two groups: those that independently execute more than one of the basic approaches described above and then integrate the results, and those that explicitly create new algorithms to process multiple signals simultaneously.
 
 \subsubsection{Pipelines}
 
@@ -281,11 +286,11 @@ Another approach to incorporating multiple sequencing signals involves the use o
 
 % \input{framework}
 
-\chapter{A General Framework for SV Detection in MapReduce}
+\chapter{A General Framework for SV Detection in MapReduce}\label{chap_framework}
 
 MapReduce~\cite{Dean:2008p277} divides computation across a cluster into three phases. In the first phase, \emph{mappers} developed by the application programmer examine small blocks of data and emit a set of $\langle key, value \rangle$ pairs for each block examined. The MapReduce framework then sorts the output of the mappers by key, and aggregates all values that are associated with each key. Finally, the framework executes \emph{reducers}, also created by the application developer, which process all of the values for a particular key and produce one or more outputs that summarize or aggregate those values. MapReduce and Hadoop allow efficient processing of large data sets by scheduling tasks for execution as close as possible to the nodes which hold the required data, minimizing network traffic and I/O contention.
 
-The need to separate logic into mappers and reducers makes it difficult to implement traditional RP-based SV detection approaches in MapReduce, particularly given the global clustering of paired end mappings at the heart of many RP approaches. MapReduce algorithms, by contrast, excel at conducting many independent calculations in parallel. The sequencing applications that have been implemented in MapReduce succeed by dividing processing into a series of local computation, for example calling a SNV at a particular location in the genome given the reads that cover it, which is the approach taken by the variant callers GATK~\cite{McKenna:2010p1051} and Crossbow~\cite{Langmead:2009p1225}. SV approaches that are similarly based on local computations have been described: the RP-based SV callers MoDIL~\cite{Lee:2009da} and forestSV~\cite{Michaelson:2012fj} attempt to solve the SV detection problem by computing scores or features along the genome and then producing SV predictions from those features in a post-processing step. 
+The need to separate logic into mappers and reducers makes it difficult to implement traditional RP-based SV detection approaches in MapReduce, particularly given the global clustering of paired end mappings at the heart of many RP approaches. MapReduce algorithms, by contrast, excel at conducting many independent calculations in parallel. The sequencing applications that have been implemented in MapReduce succeed by dividing processing into a series of local computation, for example calling a SNV at a particular location in the genome given the reads that cover it, which is the approach taken by the variant callers GATK~\cite{McKenna:2010p1051} and Crossbow~\cite{Langmead:2009p1225}. SV approaches that are similarly based on local computations have been described: the RP-based SV callers MoDIL~\cite{Lee:2009da} and forestSV~\cite{Michaelson:2012fj} try to solve the SV detection problem by computing scores or features along the genome and then producing SV predictions from those features in a post-processing step. 
 
 Using this strategy, we have developed a conceptual algorithmic framework for SV detection in MapReduce, which is outlined in Algorithm~\ref{cb_algo}. This framework divides processing into three separate MapReduce jobs: an alignment job, a feature computation job, and an SV calling job. The overall workflow of the algorithm and its implementation on a compute cluster or cloud is summarized in Figure~\ref{cloudbreak_workflow}.
 
@@ -354,9 +359,17 @@ Finally, the third MapReduce job, \textsc{Call Variants}, is responsible for mak
 
 
 % \input{cloudbreak-implementation}
-\chapter{Cloudbreak}
+\chapter{Cloudbreak}\label{chap_cloudbreak_impl}
 
-Cloudbreak is our implementation, in the framework described above, of a detection algorithm for genomic deletions (40bp-25,000bp) and small insertions based on examining the insert sizes of paired end mappings. An illustration of the Cloudbreak algorithm working on a simple example is shown in Figure 2.
+Cloudbreak is our implementation, in the framework described above, of a detection algorithm for genomic deletions (40bp-25,000bp) and small insertions based on examining the insert sizes of paired end mappings. An illustration of the Cloudbreak algorithm working on a simple example is shown in Figure \ref{cloudbreak_example}.
+
+\begin{figure}
+\centering
+\includegraphics[width=.9\textwidth]{/users/cwhelan/Documents/svpipeline/figures/cloudbreak_mapred_diagram.pdf}
+\caption{An Example of the Cloudbreak MapReduce Algorithm. A) In the first MapReduce job, mappers scan input reads in FASTQ format and execute an alignment program in either paired-end or single-ended mode to generate read mappings. Reducers gather all alignments for both reads in each pair. B) In the second MapReduce job, mappers first emit information about each read pair (in this case the insert size and quality) under keys indicating the genomic location spanned by that pair. Only one genomic location is diagrammed here for simplicity. Reducers then compute features for each location on the genome by fitting a GMM to the distribution of spanning insert sizes. C) Mappers group all emitted features by their chromosome, and reducers find contiguous blocks of features that indicate the presence of a variant.}
+\label{cloudbreak_example}
+\end{figure}
+
 
 \section{Implementation of the MapReduce SV Framework}
 
@@ -630,26 +643,114 @@ Because Cloudbreak explicitly models zygosity in its feature generation algorith
 \label{deletionGenotypeaccuracy}
 \end{table}
 
-\chapter{Extending Local Feature Based Models of SV Detection in a Discriminative Machine Learning Framework}
+\chapter{Extending Local Feature Based Models of SV Detection in a Discriminative Machine Learning Framework}\label{chap_crf}
 
 In my formulation of a general approach for SV prediction in the MapReduce framework, a crucial phase is the computation of a set of features for each genomic location. In my current implementation of Cloudbreak, these features are the parameters which are estimated by fitting a GMM to the distribution of insert sizes that span that location. However, the nature of these features are purposefully not specified in the algorithmic framework to allow flexibility in the implementation of the framework.
 
-Given a set of arbitrary features that encode information about a set of loci that are connected in a sequence, a natural approach is to apply techniques from machine learning to identify regions of interest in that sequence, rather than the heuristics and noise reduction techniques from signal processing that are currently used in the Cloudbreak implementation. Machine learning techniques have been applied to SV detection in the packages forestSV~\cite{Michaelson:2012fj} and SVM$^2$~\cite{Chiara:2012ey}, and a form of generative modeling is applied to region features in SVMiner~\cite{Hayes:2012ia}. However, none of these tools use machine learning techniques that take into account the sequential nature of the data. 
-
-I propose using features generated by Cloudbreak and a set of representative training data to train a discriminative classifier to label regions of the genome as either normal or affected by an insertion or deletion. In preliminary work conducted with an earlier version of Cloudbreak, I attempted to use linear-chain conditional random fields~\cite{Lafferty:2001:CRF:645530.655813} (CRFs) to label genomic deletions. Although I did not achieve a useful level of performance, I believe that this is still a useful area of investigation. During my preliminary work, I encountered issues relating to class imbalance in the training sets and the inability of CRF training frameworks to handle real-valued feature vectors. I will address these issues by constructing new training sets, engineering new feature sets that the current version of Cloudbreak is now able to construct, and utilizing frameworks that can work with real-valued features, such as Factorie~\cite{mccallum09:factorie}. As an alternative to CRFs, I will also investigate the use of deep learning techniques such as sequential deep belief networks~\cite{andrew2012:sdbn}, which have been used successfully in sequence processing tasks in speech recognition and other domains.
-
-The outcome of this extension will be: the creation of a training, development, and test set, along with a feature generation scheme and description of the model used; an evaluation of the performance gains that can be achieved, with a comparison to other SV detection approaches; and a discussion of the benefits and drawbacks of using such an approach.
+Given a set of arbitrary features that encode information about a set of loci that are connected in a sequence, a natural approach is to apply techniques from machine learning to identify regions of interest in that sequence, rather than the heuristics and noise reduction techniques from signal processing that are used in the Cloudbreak implementation described in Chapter \ref{chap_cloudbreak_impl}. Discriminative machine learning techniques have been applied to SV detection in the packages forestSV~\cite{Michaelson:2012fj} and SVM$^2$~\cite{Chiara:2012ey}, and a form of generative modeling is applied to region features in SVMiner~\cite{Hayes:2012ia}. However, none of these tools use machine learning techniques that take into account the sequential nature of the data. 
 
 \section{SV Detection as a Sequence Labeling Problem}
 
+In the the algorithmic framework for solving the structural variation detection problem in MapReduce that we presented in Chapter \ref{chap_framework}, we reduced the problem to one of computing a set of features that described the short read evidence for SVs at each of a set of small regions along the genome. These are then transformed into variant calls by a function which examines the features along each chromosome of the reference sequentially and identifies contiguous blocks of regions with features values that combine to coherently indicate the presence of a variant. This latter part of the process, which we named the \textsc{Postprocess} function in Algorithm \ref{cb_algo}, can be thought of as a sequencing labeling problem based on sequence features. To take the example of deletion detection, we could define two labels: ``Deletion'' if the window participates in a deletion variant, and ``No Deletion'' if it does not. More formally, we can let $Y_i$ be the label at genomic window $i$, where $1 \le i \le n$ where $n$ is the number of windows in the chromosome. If we similarly name the features for genomic window $i$ $X_i$, we can then refer to the entire sequence of labels and features as $Y$ and $X$, respectively.
+
+The goal of fhe \textsc{Postprocess} function, can be broken down into two parts: first, to assign a label to each window in the reference sequence, and second, to consolidate neighboring windows with the same label into variant calls which affect larger regions. Using this model to think about the implementation of Cloudbreak described in Chapter \ref{chap_cloudbreak_impl}, we used a simple linear threshold on the likelihood ratio of the insert size data to label each window, and then consolidated neighboring windows with hand-tuned rules such as the median filter and restriction on the estimated mean of the second GMM component. These latter rules were made necessary by the noisy nature of the data and the simplicity of the window-labeling procedure. However, if we had a completely accurate window-labeling procedure, we could remove much of the complexity of the consolidation step. Since real world data is noisy, however, the best that we can do is to try to find the most likely sequence of labels given the observed data:
+
+\[ \argmax_Y P(Y|X) \]
+
+To acheive the goal of a more principled and more accurate window-labeling procedure we would need to be able to take into account information from multiple features, as well as the labels of nearby windows. In other words, the label of each window should be dependent not only on the observed features at that window but also on the labels of other windows nearby. Probabilistic graphical models provide a framework for defining and learning models that describe these types of dependencies. \todo{Describe PGMs here} One class of graphical model that has been used extensively for sequence labeling tasks in bioinformatics are Hidden Markov Models (HMMs). \todo{describe HMMs}
+
+\section{Integrating Features with Conditional Random Fields}
+
+To overcome these drawbacks of HMMs, we implemented a linear-chain conditional random field~\cite{Lafferty:2001:CRF:645530.655813} model to label genomic deletions. The model was developed using Factorie~\cite{mccallum09:factorie}. Factorie is a toolkit written in Scala that supports a wide variety of factor-graph based models, trainers, and tools, particularly for NLP tasks such as named entity recognition. Our Factorie-based implementation of a structural variation detection program consists of two parts: a modular and configurable set of code for data management of real and binary-valued features defined along the genome, along with conversions into into binary binned feature values and labels, and code to construct, train, and run inference on linear-chain CRF models. The code developed for this project was written in Scala and is available on GitHub at \url{http://github.com/cwhelan/svfactorie}. 
+
+\todo{Feature management. Integration of disparate tracks. Selection of windows. Cumulative vs discrete binning.}
+
+\todo{Model training}
+
+We developed a linear chain CRF model in Factorie. For optimization during training we use the LGBFS algorithm with L2 regularization. We have also experimented with other optimizers including the online AdaGrad regularized dual averaging algorithm \cite{Duchi:2011:ASM:1953048.2021068} with L1 regularization but did not see large differences in preliminary testing. To conduct inference we use the Viterbi max-product belief propogation algorithm.
+
 \section{Features for SV Detection}
 
-\section{Integrating features with Conditional Random Fields}
+As described in Chapter \ref{chap_background}, there are three main signals available for SV detection in short read sequencing data sets: those that come from read pairing information, those that come from read depth, and those that come from split reads. The creation of a discriminative machine learning framework as described above can be used with any arbitrary set of features. Therefore it is possible to create feature sets that combine information from all three SV detection signals and integrate them into this framework. In addition, we can model interactions between features and use those in our predictions. Finally, the arbitrary nature of the feature function allows us to incorporate prior knowledge about given genomic regions, including sequence annotations. We have constructed a feature set that includes all of these types of features, as described below:
+
+\subsection{Read Pair Features}
+
+Read pair features are those that are based upon the inferred insert sizes and orientations linking paired reads, as described previously. We use the following RP features:
+
+\begin{itemize}
+
+\item The three features generated by Cloudbreak and described in Chapter~\ref{chap_cloudbreak_impl}: the log likelihood ratio of the insert sizes observed at each window in the two-component GMM fit vs. the likelihood under the expected normal distribution for the sample; the estimated mean $\mu$ of the second component of the two-component GMM, and $\alpha$, the estimated weight of the second component in the two-component GMM.
+
+\item Insert size change point features. 
+
+I simplified this code a little bit to only calculate segment likelihoods under a single dimensional normal distribution, since it didn't seem to make too much difference to the output. Zak, I'd be happy to discuss this further.
+\end{itemize}
+
+Split-read features:
+
+* When reads are aligned to the genome by short read mappers like BWA, they can in some cases be only partially aligned (somewhat equivalent to finding a local vs. global string alignment in the dynamic programming setting), leaving gaps at either end of the string. The aligners call this "soft clipping". This could potentially be indicative of a structural variation breakpoint disrupting the read's alignment to the reference. I created a feature track that counts the number of times a soft clip occurred in each 25bp genomic window.
+
+* For paired end reads, sometimes only one read in the pair can be successfully aligned to the genome. These are referred to as "singleton" alignments. Potentially a singleton alignment could indicate that the other read in the pair contains a variant that prevented it from being aligned, and therefore that a breakpoint could lie somewhere within the distance of the insert size. I count the number of singleton alignments in each window. Visually inspecting the data, and looking at the trained weights in my model, this doesn't seem like a very useful feature in practice.
+
+Read depth features:
+
+* I'm using now the average coverage depth of each base in each 25 bp window. Coverage depth is very noisy, unfortunately.
+
+* I've tried applying the change point detection algorithm we used with insert sizes to the coverage of each window as well, with a couple of segment sizes (it's hard to know what segment size to pick.)
+
+* Finally, since it's really drops in coverage that might indicate a breakpoint, I tried computing the drop in coverage for each window from the average coverage of its surrounding region.
+
+Genome annotations (these are represented as binary features):
+
+* Repetitive regions (the RepeatMasker track for the human genome).
+
+* Simple repeats: these are a subset of the repetitive regions that are made up of repeated k-mers of length 1 to around 4 or 5. These in particular wreak havoc with aligners. Also, many of the Venter variants occur in or near simple repeats.
+
+* Segmental duplications: These are larger regions (10kb+) that have at least one other copy in the genome with high sequence similarity between the two regions.
+
+I've been adding lots of features and hoping that the optimizer / regularizer will help to find the right ones. To that end, in addition to adding the features defined above to each bin, I also add as separate features: interaction terms for all of the features for the current bin, the features of the bins immediately preceding and after the current bin, and the features of the bins within a certain radius of the current bin (currently 7 neighboring bins).
+
+Figure \ref{crf_features_example} shows an example deletion from the NA18507 gold standard data set, along with tracks showing each of the features described above, as well as the original Cloudbreak call identifying the deletion and a call made by running inference on the trained CRF model.
+
+\begin{figure}
+\centering
+\includegraphics[width=.8\textwidth]{true_example_with_features.pdf}
+\caption{An example deletion from the NA18507 data set. The true deletion is shown in track 8. Features shown are in each track are: 1) Likelihood ratio of distribution of insert sizes. 2) Insert size change points. 3) Number of soft clipping events in each window. 4) Number of singleton mappings in each window. 5) Read coverage in each window. 6) Coverage change points. 7) Coverage drops. 11) Simple repeats. 12) Repeats. The original Cloudbreak call is shown in Track 13, and a call made by running inference in the CRF model is shown in Track 14.}
+\label{crf_features_example}
+\end{figure}
+
 
 \section{Improving Cloudbreak Calls with CRF Predictions}
 
-\chapter{Analysis of Breakpoint Features in Evolutionary and Cancer Contexts}
+\section{Training and Evaluation}
+First, I had to decide what data to train and test on. Since we don't have complete annotations of real data sets available, I decided to try training on simulated data. For this, I took my original simulation of chromosome 2 that I did for my Cloudbreak paper and expanded it to a whole genome to try to get more training data, and make the problem a little harder. This simulation includes all of the insertions and deletions annotated for J. Craig Venter's genome. For deletions and insertions with a length over 40bp, there are 5,610 deletions and 6068 insertions. I simulated 30x coverage 100bp paired-end reads with an insert size of 300bp and realigned them to the genome using BWA, as I did for my earlier work. For my test set, I'm using the same data set for individual NA18507, which is 37X coverage with high-quality 100bp paired end reads with an insert size of 300bp. As in my previous work, I then divided both training and test sets into windows of 25bp and computed features for each window.
 
+I also had to choose what data from these sets to feed to the model for training and testing. I ended up creating training windows centered on all of simulated insertion and deletion variants, with flanking regions added on either end. In some runs I've also added all of the Cloudbreak deletion calls made at a very sensitive threshold, so that I could get a lot of false positives into the training set. 
+
+To pick regions to test on, I'm taking the approach of rapidly identifying candidate regions using a fast tool (Cloudbreak in this instance), adding flanking regions to them, and then running the CRF model on those candidate regions to try to label the true variants. This will of course limit the recall of the CRF approach to the recall of the candidate regions I pick but this strategy seemed like a more efficient one than trying to label the entire genome.
+
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{/Users/cwhelan/Documents/svpipeline/figures/NA18507_DELS_ROC_with_CRF.pdf}
+\caption{ROC curve showing the accuracy of Cloudbreak calls that have been verified and refined with conditional random field predictions (Cloudbreak-CRF)}
+\label{roc_NA18507_with_crf}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics[width=.8\textwidth]{/Users/cwhelan/Documents/svpipeline/figures/breakpointResolutionNA18507_withCRF.pdf}
+\caption{Breakpoint resolution of each tool's successful predictions on the NA18507 data set, including Cloudbreak calls which were verified and refined with CRF predictions (Cloudbreak-CRF)}
+\label{breakpoint_resolution_NA18507_with_crf}
+\end{figure}
+
+\section{Discussion}
+
+As an alternative to CRFs, I will also investigate the use of deep learning techniques such as sequential deep belief networks~\cite{andrew2012:sdbn}, which have been used successfully in sequence processing tasks in speech recognition and other domains.
+
+The outcome of this extension will be: the creation of a training, development, and test set, along with a feature generation scheme and description of the model used; an evaluation of the performance gains that can be achieved, with a comparison to other SV detection approaches; and a discussion of the benefits and drawbacks of using such an approach.
+
+\chapter{Analysis of Breakpoint Features in Evolutionary and Cancer Contexts}
+\label{chap_breakpoint_analysis}
 It is important not only to be able to locate genomic breakpoints, but also to understand the genomic contexts in which they are located. This can give insights into the mechanisms of their formation, and to their impact on genome structure and function. As mentioned previously, evolutionary breakpoints that break synteny between species have parallels in the genomic breakpoints that occur within cancer cells: at some point in time SVs created these breakpoints, which were then conserved through evolutionary history. One especially interesting example can be found in the genome of the gibbon, which has many more genomic rearrangements with respect to the other apes than would be expected given their degree of relatedness.
 
 \section{Evolutionary Breakpoints in the Gibbon Genome determined by BACs}
@@ -677,6 +778,7 @@ I am also helping to analyze the breakpoints from a set of over forty mesenchyma
 As part of these analyses I will also explore alternative testing strategies including hypergeometric testing~\cite{Sandve:2013ip} and spatial correlation testing~\cite{Favorov:2012dy}.
 
 \chapter{Future Work}
+\label{chap_future_work}
 
 There are many possible extensions that could be made to enhance Cloudbreak's effectiveness as a general SV analysis tool for high-throughput sequencing data. However, implementing all of them is outside of the scope of this thesis, which aims to demonstrate the general effectiveness of a distributed computing approach to SV detection. These other extensions include:
 
