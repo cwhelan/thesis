@@ -108,12 +108,21 @@ Feature Name & Type & Column & Description & Cutpoints \\
 \label{crf_feature_definitions}
 \end{table}
 
+\subsection{A feature example}
+
+Figure \ref{crf_features_example} shows an example deletion from the NA18507 gold standard data set, along with tracks showing each of the features described above, as well as the original Cloudbreak call identifying the deletion and a call made by running inference on the trained CRF model. One can observe an elevated likelihood ratio in the first track covering the deletion. At or near the breakpoitnts of the deletion there are higher scores for the insert size change point, soft clip count, and singleton alignment features. The deletion span is also associated with lower coverage values.
+
 \subsection{Interaction and neighbor features}
 
-I've been adding lots of features and hoping that the optimizer / regularizer will help to find the right ones. To that end, in addition to adding the features defined above to each bin, I also add as separate features: interaction terms for all of the features for the current bin, the features of the bins immediately preceding and after the current bin, and the features of the bins within a certain radius of the current bin (currently 7 neighboring bins).
+Several of these features may be most informative when considered in conjunction with other features. For example, low coverage depth may mean something different when it occurs in a repetitive element, since that region of the genome might be harder to align reads to. Similarly, the features of neightboring windows could also inform the choice of label; since the CRF makes no demands of independence between neighboring feature functions, it is possible to include these neighboring features in the model. To that end, in addition to adding the features defined above to each bin, we also add as separately labelled features:
 
-Figure \ref{crf_features_example} shows an example deletion from the NA18507 gold standard data set, along with tracks showing each of the features described above, as well as the original Cloudbreak call identifying the deletion and a call made by running inference on the trained CRF model.
+\begin{itemize}
+\item Interaction terms for all of the features for the current window. 
+\item The features of the windows immediately befire and after the current window.
+\item The features of the windows within a certain radius of the current window (currently 7 neighboring bins).
+\end{itemize}
 
+Although this creates a large feature space, we hope that by training with regularization the optimizer will be able to select the most important features and avoid overfitting.
 \begin{figure}
 \centering
 \includegraphics[width=.8\textwidth]{true_example_with_features.pdf}
@@ -121,12 +130,21 @@ Figure \ref{crf_features_example} shows an example deletion from the NA18507 gol
 \label{crf_features_example}
 \end{figure}
 
+\section{Training the CRF}
+
+As noted in Chapter~\ref{chap_cloudbreak_implementation}, there are limited complete SV annotations of real data sets available. Therefore, we decided to train on simulated data. It should be noted that training on simulated data only exposes the model to one form of noise: incorrect or incomplete mappings. In real data sets, there are additional sources of noise in short read data sets, including chimeric fragments; complex structural variations, and errors in the genome reference. Therefore, any gains that can be made by training on simulated data and testing on real data are less than the possible gains that could be acheived with a more realistic training set.
+
+To increase the number of training examples, we took the original simulation of Chromosome 2 described in Chapter~\ref{chap_cloudbreak_implementation} and expanded it to a whole genome simulation. This also has the effect of increasing the possibility for mapping ambiguity, adding noise to the signal. The simulation includes all of the insertions and deletions annotated for J. Craig Venter's genome. For deletions and insertions with a length over 40bp, there are 5,610 deletions and 6068 insertions. We simulated 30x coverage 100bp paired-end reads with an insert size of 300bp and aligned them to the reference genome using BWA, as described earlier. 
+
+\todo{This is where I am}
+I also had to choose what data from these sets to feed to the model for training and testing. I ended up creating training windows centered on all of simulated insertion and deletion variants, with flanking regions added on either end. In some runs I've also added all of the Cloudbreak deletion calls made at a very sensitive threshold, so that I could get a lot of false positives into the training set. 
+
+As in my previous work, I then divided both training and test sets into windows of 25bp and computed features for each window.
+
 \section{Improving Cloudbreak Calls with CRF Predictions}
 
-\section{Training and Evaluation}
-First, I had to decide what data to train and test on. Since we don't have complete annotations of real data sets available, I decided to try training on simulated data. For this, I took my original simulation of chromosome 2 that I did for my Cloudbreak paper and expanded it to a whole genome to try to get more training data, and make the problem a little harder. This simulation includes all of the insertions and deletions annotated for J. Craig Venter's genome. For deletions and insertions with a length over 40bp, there are 5,610 deletions and 6068 insertions. I simulated 30x coverage 100bp paired-end reads with an insert size of 300bp and realigned them to the genome using BWA, as I did for my earlier work. For my test set, I'm using the same data set for individual NA18507, which is 37X coverage with high-quality 100bp paired end reads with an insert size of 300bp. As in my previous work, I then divided both training and test sets into windows of 25bp and computed features for each window.
+For my test set, I'm using the same data set for individual NA18507, which is 37X coverage with high-quality 100bp paired end reads with an insert size of 300bp. 
 
-I also had to choose what data from these sets to feed to the model for training and testing. I ended up creating training windows centered on all of simulated insertion and deletion variants, with flanking regions added on either end. In some runs I've also added all of the Cloudbreak deletion calls made at a very sensitive threshold, so that I could get a lot of false positives into the training set. 
 
 To pick regions to test on, I'm taking the approach of rapidly identifying candidate regions using a fast tool (Cloudbreak in this instance), adding flanking regions to them, and then running the CRF model on those candidate regions to try to label the true variants. This will of course limit the recall of the CRF approach to the recall of the candidate regions I pick but this strategy seemed like a more efficient one than trying to label the entire genome.
 
