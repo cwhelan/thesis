@@ -1,6 +1,10 @@
 \chapter{Cloudbreak}\label{chap_cloudbreak_impl}
 
-Cloudbreak is our implementation, in the framework described above, of a detection algorithm for genomic deletions (40bp-25,000bp) and small insertions based on examining the insert sizes of paired end mappings. Cloudbreak is a native Java Hadoop application. We deployed Cloudbreak on a 56-node cluster running the Cloudera CDH3 Hadoop distribution, version 0.20.2-cdh3u4. We use snappy compression for MapReduce data, and Hadoop's distributed cache mechanism to share the executable files and indices needed for mapping tasks to the nodes in the cluster. An illustration of the Cloudbreak algorithm working on a simple example is shown in Figure \ref{cloudbreak_example}.
+Cloudbreak is our implementation, in the framework described above, of a detection algorithm for genomic deletions (40bp-25,000bp) and small insertions based on examining the insert sizes of paired end mappings. Cloudbreak is a native Java Hadoop application that implements the infrastructure necessary for the algorithmic framework defined in the previous chapter, and also contains implementations of the user-defined framework functions, which we will describe in the next section. Our implementation of the \textsc{Align Reads} job contains wrappers to execute the aligners BWA \cite{Li:2009p836}, GEM \cite{MarcoSola:2012hm}, Novoalign \cite{novoalign}, RazerS 3 \cite{Weese:2012by}, mrFAST \cite{Alkan:2009cr}, and Bowtie 2 \cite{Langmead:2012jh}. This job can also be skipped in favor of importing a pre-aligned BAM file directly into HDFS. We deployed Cloudbreak on a 56-node cluster running the Cloudera CDH3 Hadoop distribution, version 0.20.2-cdh3u4. We use snappy compression for MapReduce data, and Hadoop's distributed cache mechanism to share the executable files and indices needed for mapping tasks to the nodes in the cluster. Cloudbreak can be executed on any Hadoop cluster; Hadoop abstracts away the details of cluster configuration, making distributed applications portable. 
+
+\section{Implementation of the MapReduce SV Algorithm}
+
+In Cloudbreak, we have implemented the three user-defined functions that we described in Section~\ref{section_general_algo} to create an SV detection application that is capable of detecting short (40bp-25,000bp) deletions and insertions. A detailed description of each of the three functions appears below, and an illustration of each phase of the Cloudbreak algorithm working on a simple example is shown in Figure \ref{cloudbreak_example}.
 
 \begin{figure}
 \centering
@@ -8,11 +12,6 @@ Cloudbreak is our implementation, in the framework described above, of a detecti
 \caption{An Example of the Cloudbreak MapReduce Algorithm. A) In the first MapReduce job, mappers scan input reads in FASTQ format and execute an alignment program in either paired-end or single-ended mode to generate read mappings. Reducers gather all alignments for both reads in each pair. B) In the second MapReduce job, mappers first emit information about each read pair (in this case the insert size and quality) under keys indicating the genomic location spanned by that pair. Only one genomic location is diagrammed here for simplicity. Reducers then compute features for each location on the genome by fitting a GMM to the distribution of spanning insert sizes. C) Mappers group all emitted features by their chromosome, and reducers find contiguous blocks of features that indicate the presence of a variant.}
 \label{cloudbreak_example}
 \end{figure}
-
-
-\section{Implementation of the MapReduce SV Framework}
-
-In particular, we implement the three user-defined functions specified above as follows:
 
 \begin{description}
 \item[\sc{Loci}] Because we are detecting deletions and short insertions, we map ReadPairInfos from each possible alignment to the genomic locations overlapped by the implied internal insert between the reads. For efficiency, we define a maximum detectable deletion size of 25,000bp, and therefore alignment pairs in which the ends are more than 25kb apart, or in the incorrect orientation, map to no genomic locations. In addition, if there are multiple possible mappings for each read in the input set, we optimize this step by assuming that if there exists a concordant mapping for a read pair, defined as a mapping pair in which the two alignments are in the proper orientation and with an insert size within three standard deviations of the expected library insert size, it is likely to be correct and therefore we do not consider any discordant alignments of the pair.
@@ -46,3 +45,8 @@ And then multiply $p_c(a^{1}_{m,i})$ and $p_c(a^{2}_{m,i})$ to approximate the l
 \section{Genotyping}
 
 In theory, it should be possible to use the parameters of the fit GMM to infer the genotype of each predicted variant. Assuming that our pipeline is capturing all relevant read mappings near the locus of the variant, the genotype should be indicated by the estimated parameter $\alpha$, the mixing parameter that controls the weight of the two components in the GMM. We set a simple cutoff of .35 on the average value of $\alpha$ for each prediction to call the predicted variant homozygous or heterozygous, and use the same cutoff for deletion and insertion predictions.
+
+\section{Running in the Cloud with Whirr}
+
+In addition, our Cloudbreak implementation can leverage the Apache Whirr library to automatically create clusters with cloud service providers such as the Amazon Elastic Compute Cloud (EC2). This enables on demand provisioning of Hadoop clusters which can then be terminated when processing is complete, eliminating the need to invest in a standing cluster and allowing a model in which users can scale their computational infrastructure as their need for it varies over time. Instructions and examples describing how to leverage cloud computing with Cloudbreak are available in the user manual.
+\todo{expand}
