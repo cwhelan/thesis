@@ -712,3 +712,48 @@ author = {The Apache Software Foundation},
 title = {Whirr},
 howpublished={\url{http://whirr.apache.org}}
 }
+
+@article{condor-practice, 
+  author    = "Douglas Thain and Todd Tannenbaum and Miron Livny",
+  title     = "Distributed computing in practice: the Condor experience.",
+  journal   = "Concurrency - Practice and Experience",
+  volume    = "17",
+  number    = "2-4",
+  year      = "2005",
+  pages     = "323-356",
+}
+
+@misc{DNAA,
+	title  = {DNAA},
+        author = {Homer, Nils},
+        howpublished={\url{http://sourceforge.net/apps/mediawiki/dnaa/}}
+}
+
+@article{Untergasser01082012,
+author = {Untergasser, Andreas and Cutcutache, Ioana and Koressaar, Triinu and Ye, Jian and Faircloth, Brant C. and Remm, Maido and Rozen, Steven G.}, 
+title = {Primer3—new capabilities and interfaces},
+volume = {40}, 
+number = {15}, 
+pages = {e115}, 
+year = {2012}, 
+doi = {10.1093/nar/gks596}, 
+abstract ={Polymerase chain reaction (PCR) is a basic molecular biology technique with a multiplicity of uses, including deoxyribonucleic acid cloning and sequencing, functional analysis of genes, diagnosis of diseases, genotyping and discovery of genetic variants. Reliable primer design is crucial for successful PCR, and for over a decade, the open-source Primer3 software has been widely used for primer design, often in high-throughput genomics applications. It has also been incorporated into numerous publicly available software packages and web services. During this period, we have greatly expanded Primer3’s functionality. In this article, we describe Primer3’s current capabilities, emphasizing recent improvements. The most notable enhancements incorporate more accurate thermodynamic models in the primer design process, both to improve melting temperature prediction and to reduce the likelihood that primers will form hairpins or dimers. Additional enhancements include more precise control of primer placement—a change motivated partly by opportunities to use whole-genome sequences to improve primer specificity. We also added features to increase ease of use, including the ability to save and re-use parameter settings and the ability to require that individual primers not be used in more than one primer pair. We have made the core code more modular and provided cleaner programming interfaces to further ease integration with other software. These improvements position Primer3 for continued use with genome-scale data in the decade ahead.}, 
+URL = {http://nar.oxfordjournals.org/content/40/15/e115.abstract}, 
+eprint = {http://nar.oxfordjournals.org/content/40/15/e115.full.pdf+html}, 
+journal = {Nucleic Acids Research} 
+}
+
+@article{Kent01042002,
+author = {Kent, W. James}, 
+title = {
+BLAT—The BLAST-Like Alignment Tool},
+volume = {12}, 
+number = {4}, 
+pages = {656-664}, 
+year = {2002}, 
+doi = {10.1101/gr.229202}, 
+abstract ={Analyzing vertebrate genomes requires rapid mRNA/DNA and cross-species protein alignments. A new tool, BLAT, is more accurate and 500 times faster than popular existing tools for mRNA/DNA alignments and 50 times faster for protein alignments at sensitivity settings typically used when comparing vertebrate sequences. BLAT's speed stems from an index of all nonoverlapping K-mers in the genome. This index fits inside the RAM of inexpensive computers, and need only be computed once for each genome assembly. BLAT has several major stages. It uses the index to find regions in the genome likely to be homologous to the query sequence. It performs an alignment between homologous regions. It stitches together these aligned regions (often exons) into larger alignments (typically genes). Finally, BLAT revisits small internal exons possibly missed at the first stage and adjusts large gap boundaries that have canonical splice sites where feasible. This paper describes how BLAT was optimized. Effects on speed and sensitivity are explored for various K-mer sizes, mismatch schemes, and number of required index matches. BLAT is compared with other alignment programs on various test sets and then used in several genome-wide applications. http://genome.ucsc.edu hosts a web-basedBLAT server for the human genome.}, 
+URL = {http://genome.cshlp.org/content/12/4/656.abstract}, 
+eprint = {http://genome.cshlp.org/content/12/4/656.full.pdf+html}, 
+journal = {Genome Research} 
+}
