@@ -1,16 +1,21 @@
 \chapter{Extending Local Feature Based Models of SV Detection in a Discriminative Machine Learning Framework}\label{chap_crf}
 
-In my formulation of a general approach for SV prediction in the MapReduce framework, a crucial phase is the computation of a set of features for each genomic location. In my current implementation of Cloudbreak, these features are the parameters which are estimated by fitting a GMM to the distribution of insert sizes that span that location. However, the nature of these features are purposefully not specified in the algorithmic framework to allow flexibility in the implementation of the framework.
+In the formulation of a general algorithmic framework for SV prediction in MapReduce that we described in Chapter~\ref{chap_framework}, a crucial step is the computation of a set of features for each of the small, non-overlapping windows with which we tiled the genome reference. In the implementation of Cloudbreak described in Chapter~\ref{chap_cloudbreak_impl}, these features were the parameters which are estimated by fitting a GMM to the distribution of insert sizes that span that location. However, in general the nature of these features are purposefully not specified in the algorithmic framework to allow flexibility in the nature of the applications that it could potentially be used to build.
 
-Given a set of arbitrary features that encode information about a set of loci that are connected in a sequence, a natural approach is to apply techniques from machine learning to identify regions of interest in that sequence, rather than the heuristics and noise reduction techniques from signal processing that are used in the Cloudbreak implementation described in Chapter \ref{chap_cloudbreak_impl}. Discriminative machine learning techniques have been applied to SV detection in the packages forestSV~\cite{Michaelson:2012fj} and SVM$^2$~\cite{Chiara:2012ey}. However, neither of these tools use machine learning techniques that take into account the sequential nature of the data. 
+Given a set of arbitrary features that encode information about a set of loci that are connected in a sequence, a natural approach is to apply techniques from machine learning to identify regions of interest in that sequence, rather than the heuristics and noise reduction techniques from signal processing that are used in the Cloudbreak implementation described in Chapter \ref{chap_cloudbreak_impl}. In this chapter we will reformulate the problem as a sequence labeling task, discuss possible machine learning frameworks that could be used to solve it, explore the ways in which features can be engineered to integrate multiple signals of SVs, and show that it is possible to achieve modest but positive improvements using conditional random fields, a discriminative machine learning technique.
+
+\section{Related Work}
+
+Discriminative machine learning techniques have been applied to SV detection in the tools forestSV~\cite{Michaelson:2012fj} and SVM$^2$~\cite{Chiara:2012ey}. SVM$^2$ computes a set of statistics based on differences between the coverage and insert size distributions observed at nearby locations on the genome. If the statistics pass a set of coarse filtering rules, they are used as features for a support vector machine (SVM) classifier that the authors trained on a set of simulated short insertion and deletions. forestSV trained a Random Forest classifier~\cite{breiman2001} to detect deletions and duplications based on validated and false positive predictions from many samples in the 1000 Genomes Project data set. Their tool is based upon computing features for a sliding window moving across the genome, as well as for the flanking regions of that window. The authors demonstrated that it was possible to combine disparate signals by including features that were based on read depth as well as discordant read pair mappings in their feature set. The forestSV algorithm was similar to Cloudbreak in that the classifier made calls at each window, and a postprocessing function then merged windows classified with the same label into variant calls. Both of these methods demonstrate innovative ways of learning from existing data, and integrating read pair and split read based signals. However, neither of these tools use machine learning techniques that take into account the sequential nature of the data; the classifiers are run independently on each candidate variant location (in the case of SVM$^2$) or window (in the case of forestSV), and the labels that are assigned in each invocation of the classifier do not affect the neighboring regions. We will show that by treating the problem as a sequence labeling task, it is possible to take advantage of learning techniques that operate on the entire sequence of observations at once.
 
 \section{SV Detection as a Sequence Labeling Problem}
 
-In the the algorithmic framework for solving the structural variation detection problem in MapReduce that we presented in Chapter \ref{chap_framework}, we reduced the problem to one of computing a set of features that described the short read evidence for SVs at each of a set of small regions along the genome. These are then transformed into variant calls by a function which examines the features along each chromosome of the reference sequentially and identifies contiguous blocks of regions with features values that combine to coherently indicate the presence of a variant. This latter part of the process, which we named the \textsc{Postprocess} function in Algorithm \ref{cb_algo}, can be thought of as a sequencing labeling problem based on sequence features. To take the example of deletion detection, we could define two labels: ``Deletion'' if the window participates in a deletion variant, and ``No Deletion'' if it does not. More formally, we can let $Y_i$ be the label at genomic window $i$, where $1 \le i \le n$ where $n$ is the number of windows in the chromosome. If we similarly name the features for genomic window $i$ $X_i$, we can then refer to the entire sequence of labels and features as $Y$ and $X$, respectively.
+In our MapReduce algorithmic framework, the features computed at each window are transformed into variant calls by a function that examines the features along each chromosome of the reference sequentially and identifies contiguous blocks of regions with features values that combine to coherently indicate the presence of a variant. This part of the process, which we named the \textsc{Postprocess} function in Algorithm \ref{cb_algo}, can be thought of as a sequence labeling problem based on a series of observation features. To take the example of deletion detection, we could define two labels: ``Deletion'' if the window participates in a deletion variant, and ``No Deletion'' if it does not. More formally, we can let $Y_i$ be the label at genomic window $i$, where $1 \le i \le n$ and $n$ is the number of windows in the chromosome. If we similarly name the features for genomic window $i$ $X_i$, we can then refer to the entire sequence of labels and features as $Y$ and $X$, respectively.
 
-The goal of the \textsc{Postprocess} function, can be broken down into two parts: first, to assign a label to each window in the reference sequence, and second, to consolidate neighboring windows with the same label into variant calls which affect larger regions. Using this model to think about the implementation of Cloudbreak described in Chapter \ref{chap_cloudbreak_impl}, we used a simple linear threshold on the likelihood ratio of the insert size data to label each window, and then consolidated neighboring windows with hand-tuned rules such as the median filter and restriction on the estimated mean of the second GMM component. These latter rules were made necessary by the noisy nature of the data and the simplicity of the window-labeling procedure. However, if we had a completely accurate window-labeling procedure, we could remove much of the complexity of the consolidation step. Since real world data is noisy, however, the best that we can do is to try to find the most likely sequence of labels given the observed data:
+The goal of the \textsc{Postprocess} function can be broken down into two parts: first, to assign a label to each window in the reference sequence, and second, to consolidate neighboring windows with the same label into variant calls which affect larger regions. Analyzing the implementation of Cloudbreak described in Chapter \ref{chap_cloudbreak_impl} in this model, we used a simple linear threshold on the likelihood ratio of the insert size data to label each window, and then consolidated neighboring windows with hand-tuned rules such as the median filter and restriction on the estimated mean of the second GMM component. These latter rules were made necessary by the noisy nature of the data and the simplicity of the window-labeling procedure. However, if we had a completely accurate window-labeling procedure, we could remove much of the complexity of the consolidation step. Since real world data is noisy the best that we can do is to try to find the most likely sequence of labels given the observed data:
 
 \[ \argmax_Y P(Y|X) \]
+
 
 \section{Graphical Models for Sequence Labeling}
 
@@ -197,6 +202,50 @@ Although the CRF method provides only a limited benefit to discriminative power 
 \caption{Breakpoint resolution of each tool's successful predictions on the NA18507 data set, including Cloudbreak calls which were verified and refined with CRF predictions (Cloudbreak-CRF)}
 \label{breakpoint_resolution_NA18507_with_crf}
 \end{figure}
+
+\section{Features Selected by the CRF}
+
+It can often be informative to examine the features that are given high scores by a machine learning technique. Table~\ref{crf_feature_selections} shows the top 25 features learned by the CRF for the window labels that correspond to ``Deletion Breakpoint'' (the windows which contain the endpoints of deleted regions) and ``Insertion''. Surprisingly, the CRF has learned a strong association between the deletion breakpoint label and the presence of simple repeats, showing how much correspondence there is between those features and the variants in the training set. As we might expect given the improvement in localizing breakpoint locations, soft clipping-related features are given high scores, particularly when it occurs in conjunction with coverage drops. The mu2 feature is used heavily for both deletions and insertions. Surprisingly, the Cloudbreak likelihood ratio does not occur often in the highest scoring features. Further examination of the feature scores may allow for improvements in feature engineering to create more parsimonious and effective models.
+
+\begin{table}
+\begin{centering}
+\footnotesize
+\begin{tabular}{|lr|lr|}
+\hline
+\multicolumn{2}{|c|}{Deletion} &	\multicolumn{2}{c|}{Insertion} \\
+Feature Name & Score & Feature Name & Score \\
+\hline
+simpleRepeat & 0.6 & softClip > 1.0 & 0.47 \\
+260 < mu2 < 340 and simpleRepeat & 0.34 & simpleRepeat & 0.41 \\
+simpleRepeat neighbor & 0.34 & softClip > 3.0 & 0.39 \\
+rdepth < .1 and simpleRepeat & 0.32 & 260 < mu2 < 340 and softClip > 1.0 & 0.38 \\
+260 < mu2 < 340 and simpleRepeat neighbor & 0.29 & softClip > 1.0 neighbor & 0.31 \\
+softClip > 1.0 and covDrop20 > 5.0 & 0.23 & softClip > 2.0 & 0.29 \\
+softClip > 3.0 and covDrop20 > 5.0 & 0.2 & mu2 < 260 in region & 0.26 \\
+mu2 < 260 and lr = 0 in region & 0.19 & 260 < mu2 < 340 and softClip > 3.0 & 0.25 \\
+softClip > 1.0 & 0.18 & rdepth < .1 and simpleRepeat & 0.24 \\
+softClip > 3.0 and covDrop20 > 10.0 & 0.17 & rdepth > 1 and simpleRepeat neighbor & 0.23 \\
+softClip > 2.0 and covDrop20 > 5.0 & 0.17 & softClip > 2.0 neighbor & 0.22 \\
+mu2 > 340 and simpleRepeat & 0.17 & softClip > 1.0 in region & 0.22 \\
+covDrop20 > 5.0 in region & 0.17 & mu2 < 260 and simpleRepeat & 0.21 \\
+changePoint > 5.0 in region & 0.16 & simpleRepeat and repeat & 0.21 \\
+softClip > 2.0 and covDrop20 > 10.0 & 0.15 & singletons > 1.0 and covDrop20 > 5.0 & 0.21 \\
+covChangePoint > 10.0 in region & 0.15 & softClip > 2.0 in region & 0.2 \\
+softClip > 1.0 neighbor & 0.14 & softClip > 3.0 neighbor & 0.2 \\
+mu2 > 340 in region & 0.14 & 260 < mu2 < 340 and softClip > 2.0 & 0.2 \\
+mu2 > 340 and lr > 0.75 & 0.14 & rdepth > 1 and simpleRepeat & 0.2 \\
+changePoint > 15.0 and rdepth < .5 in region & 0.14 & softClip > 1.0 and rdepth > 1 & 0.16 \\
+mu2 > 340 and softClip > 1.0 & 0.13 & mu2 < 260 neighbor & 0.16 \\
+softClip > 1.0 and covDrop20 > 10.0 & 0.13 & lr > 0.75 and simpleRepeat & 0.15 \\
+260 < mu2 < 340 and covDrop20 > 10.0 neighbor & 0.13 & 260 < mu2 < 340 and lr = 0 in region & 0.15 \\
+rdepth < .1 and covDrop20 > 5.0 neighbor & 0.13 & softClip > 1.0 and repeat & 0.15 \\
+rdepth < .25 & 0.13 & changePoint > 5.0 and softClip > 3.0 & 0.14 \\
+\hline
+\end{tabular}
+\caption{Most important features learned by the CRF model for deletion and insertion breakpoints. ``Neighbor'': feature occurs in neighboring window. ``In region'': feature occurs within 300bp of current window. Feature names are the same as those in Table~\ref{crf_feature_definitions}}
+\end{centering}
+\label{crf_feature_selections}
+\end{table}
 
 \section{Discussion}
 
