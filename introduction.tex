@@ -28,13 +28,13 @@ While current approaches struggle with accuracy, they also often fail to conside
 
 One approach to scaling data analysis pipelines is to harness the power of distributed computing using frameworks that tie together clusters of servers. Google's MapReduce~\cite{Dean:2008p277} framework was designed to manage the storage and efficient processing of very large scale data sets across clusters of commodity servers. Hadoop is an open source project of the Apache Foundation which provides an implementation of the MapReduce programming framework as well as a distributed file system (HDFS) for distributing the redundant storage of large data sets across a cluster. Hadoop/MapReduce are rapidly becoming a standard in industrial data mining applications. However, it requires the use of a specific programming model, which can make it difficult to design general-purpose algorithms for arbitrary sequencing analysis problems like SV detection. 
 
-With this in mind, I have developed and evaluated methods for SV detection in the MapReduce framework. In addition, I have used distributed computing to aid in the analysis of genomic DNA breakpoints. I will describe this work and its extensions in my thesis, which will contain the following contributions:
+This thesis presents an algorithmic frameowork for a novel class of SV detection methods in MapReduce. In particular, the main contributions are:
 
 \begin{itemize}
- \item The description of a framework for solving SV detection problems in Hadoop and MapReduce based on the computation of local features along the genome from paired end mappings.
- \item The development in this framework of a software package, Cloudbreak, for discovering genomic deletions up to 25,000bp long, and short insertions, which improves accuracy over existing approaches and uses distributed computing to achieve dramatically faster runtimes.
- \item The analysis of several cancer sequencing data sets using Cloudbreak and other existing SV detection tools, including the development of a pipeline for prioritizing high quality candidate SVs.
- \item An extension of Cloudbreak to incorporate machine learning techniques to further improve SV detection accuracy.
+ \item The description of an algorithmic framework for solving SV detection problems in Hadoop and MapReduce based on the computation of local features along the genome from paired end mappings (Chapter~\ref{chap_framework}).
+ \item The development in this framework of a software package, Cloudbreak, for discovering genomic deletions up to 25,000bp long, and short insertions, which improves accuracy over existing approaches and uses distributed computing to achieve dramatically faster runtimes (Chapter~\ref{chap_cloudbreak_impl} and Chapter~\ref{chap_cloudbreak_eval}).
+ \item An evaluation of the strengths and weaknesses of Cloudbreak when tested on several real and simulated data sets (Chapter~\ref{chap_cloudbreak_eval}).
+ \item An exploration of the use of local features as described in Chapter~\ref{chap_framework} to reformulate SV detection as a sequence labeling problem, and the corresponding implementation and evaluation of a conditional random field model to create a novel method for integrating different signals of structural variations (Chapter~\ref{chap_crf}).
  \item The analysis of sets of genomic breakpoints from cancer and evolutionary data sets. I will examine a set of evolutionary breakpoints discovered in the gibbon genome, and sets of somatic breakpoints discovered in cancer samples. The analysis will search for genomic features that are associated with breakpoints to determine either correlative or causative factors associated with breakpoint formation and preservation.
 \end{itemize}
 
