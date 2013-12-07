@@ -36,6 +36,8 @@
 \usepackage{rotating}
 \usepackage{xr}
 
+\usepackage[T1]{fontenc}
+
 % \usepackage{algorithm}
 % \usepackage[noend]{algpseudocode}
 % \usepackage{url}
@@ -77,7 +79,7 @@
 \DeclareMathOperator*{\argmax}{arg\,max}
 \newcommand{\degree}{\ensuremath{^\circ}}
 
-%\includeonly{crf}
+\includeonly{framework}
 
 \begin{document}
 
@@ -135,7 +137,7 @@
 % stage.
 %
 % The below creates the title page, etc.
-\beforepreface
+%\beforepreface
 
 % This is a sample dedication. It should be vertically centered in the page.
 % Since the style format doesn't do it for you automatically, you can use
@@ -165,7 +167,7 @@
 \afterpreface
 
 % Abstract
-\include{abstract}
+%\include{abstract}
 
 % This is where the main body of the thesis starts
 %
@@ -195,7 +197,7 @@
 \bibliographystyle{acm}
 % Single space the bibliography to save space.
 \begin{singlespace}
-\bibliography{thesis}
+%\bibliography{thesis}
 \end{singlespace}
 %\printbibliography
 
