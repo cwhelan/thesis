@@ -210,6 +210,7 @@ It can often be informative to examine the features that are given high scores b
 \begin{table}
 \begin{centering}
 \footnotesize
+\resizebox{\textwidth}{!}{
 \begin{tabular}{|lr|lr|}
 \hline
 \multicolumn{2}{|c|}{Deletion} &	\multicolumn{2}{c|}{Insertion} \\
@@ -242,6 +243,7 @@ rdepth < .1 and covDrop20 > 5.0 neighbor & 0.13 & softClip > 1.0 and repeat & 0.
 rdepth < .25 & 0.13 & changePoint > 5.0 and softClip > 3.0 & 0.14 \\
 \hline
 \end{tabular}
+}
 \caption{Most important features learned by the CRF model for deletion and insertion breakpoints. ``Neighbor'': feature occurs in neighboring window. ``In region'': feature occurs within 300bp of current window. Feature names are the same as those in Table~\ref{crf_feature_definitions}}
 \end{centering}
 \label{crf_feature_selections}
