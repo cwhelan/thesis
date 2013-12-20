@@ -1,23 +1,73 @@
 \chapter{Biological Background}\label{chap_background}
 
-In this chapter we will explore the nature of structural variations, discuss the mechanisms that may be behind their formation, and their effect on phenotypes and disease. We will then describe high-throughput sequencing and discuss the typical informatics pipelines that researchers create to analyze sequencing data, ending with a discussion of the challenges that the increasing number and size of sequencing data sets represent.
+In this chapter we will explore the nature of structural variations, discuss the mechanisms that may be behind their formation, and their effect on phenotypes and disease. We will then describe high-throughput sequencing and discuss the typical informatics pipelines that researchers create to analyze sequencing data, placing SV detection within the context of the other types of compution that must be done to support end-to-end analysis. Finally, we will discus the challenges that the increasing number and size of sequencing data sets represent.
 
 \section{Structural Variations}
 
-\subsection{Types of Structural Variation}
+As we described in the introduction, structural variations (SVs) are rearrangements, relative to some reference genome sequence, of sequences of DNA with a length longer than 40 or 50bp. These can take the form of deletions of reference sequence, insertions of novel sequence, duplications of sequence, inversions of orientation of a stretch of sequence with respect to the rest of its chromosome, or translocations of sequence from one chromosome to another. Deletions, insertions, and duplications are also frequently referred to as \emph{copy number variations} (CNVs). In addition, many complex SVs exist in which these simple SV types are combined.
 
-\subsection{Mechanisms of SV formation}
+SVs can occur and become part of a gene pool on several different biological and time scales. On the smallest level, SVs can rearrange the genomes of individual cells within an organism. If the SV contributes to the cell's ability to proliferate, or occurs in conjuction with another mutation that does so, it can give rise to a tumor, or a new subpopulation or clone within an existing tumor. On a population scale, the genomes of individuals within a species harbor SVs with respect to one another, either because they were transmitted through the germline or because they arose \emph{de novo} in certain individuals. Finally, on a larger scale, SVs within a species may become fixed, contributing to differences between the genomes of varying species on an evolutionary scale.
 
 \subsection{SV Effects on Phenotype and Disease}
 
+On all of these levels, SVs are associated with differences in phenotypes and have been shown to associate with many types of disease, making them an important area of study. Knowledge of these effects has of course been shaped by the types and number of SVs that technology and collected data has allowed us to detect, and is therefore biased towards larger variants that were discoverable before the advent of modern array and sequencing technologies. 
+
+Cancer genomes contain many SVs that have been linked to cancer progression. The famous Brc-Abl mutation~\cite{Kurzrock:2003bz} mentioned previously is the most famous example of a fusion gene, in which portions of the genome coding for two different genes are made adjacent due to an SV. This results in the creation of new gene which can take on novel functions, which in turn drive cancer growth. Fusion genes can be caused through any type SV that causes a novel adjacency between regions of the genome, including deletions, duplications, translocations, and inversions, and there have been dozens of recurring fusion genes identified across varying cancers to this point~\cite{Annala:2013ks}. In another famous example, the genomic locus that contains the MYC gene, which among other functions regulates cell proliferation~\cite{Eilers:2008jk}, is frequently duplicated multiple times in breast cancer cells~\cite{Escot:1986tn}. These duplications change the amount of protein made by the cell, causing a dosage-related defect in cell regulation. In other cancer cell lines, a dramatic process called \emph{chromothripsis} has been observed, in which entire chromosomes appear to ``shatter'' and then be pieced back together. This gives rise to hundreds of SVs, some of which can promote cancer development~\cite{Stephens:2011bm}. On the other end of the spectrum in terms of variant size, small deletions of less than 150bp in untranslated coding regions of genes have been observed to contribute to abberant gene expression in leukemia~\cite{Hosokawa:1998wi}.
+
+On the scale of the human population, SVs and CNVs have been implicated in a variety of diseases (for a comprehensive recent review see Weischenfeldt et al.~\cite{Weischenfeldt:2013fm}). The best studied of these are large CNVs, including deletions or duplications of genes. These can can include variants that arise \emph{de novo} in individuals, either giving rise to rare disorders such as \todo{what} or contributing to the risk of autism~\cite{Sebat:2007bs} and schizophrenia~\cite{Walsh:2008kp}. The rise of microarrays and high-throughput sequencing has sped the discovery of smaller variants that affect coding sequence by deleting exons. For example, an 8kb deletion of an exon in the BAG3 gene was recently tied to risk for cardiomyopathy~\cite{Norton:2011ev}. \todo{etc.}
+
+There are also numerous examples of deletions that affect human phenotypes even though they do not directly overlap with the coding regions of genes, instead interacting with regulatory elements that control gene expression levels. For example, deletions ranging from 36kb to 319kb in size that are over one megabase away from the SOX9 gene locus can alter its expression by removing an enhancer element, giving rise to a rare cleft palate syndrom called Pierre Robin sequence~\cite{Benko:2009dq}. Expanding on this idea, a survey of CNVs between inbred mouse strains showed that 28\% of gene expression differences between strains could be statistically explaned by CNVs, but that only 7\% of the identified CNVs directly overlapped one of the differentially expressed genes, suggesting that SVs may shape many aspects of organism phenotypes in complex ways~\cite{Cahan:2009ef}. In another dramatic example from other species, the well-studied stickleback fish, which has repeatedly evolved adaptations to fresh water in several locations around the world as it moved from the sea into lakes, owes one of those adaptations, the loss of spines on its pelvis, to recurrent sub-2kb deletions of an enhacer that regulates the Pitx1 gene~\cite{Chan:2010hz}.
+
+This last case points to the value that can be gained by studying SVs that have been shaped by, or helped to shape, evolutionary processes. Hahn gene duplications.. Ventura segmental duplications in gorilla.. Gibbon karyotype.. 
+
+\subsection{Mechanisms and Signatures of SV Formation}
+
+Given that many of the phenotypic effects of SVs described above are deleterious to the organism, it is natural to ask how they arise in genomes. 
+
+NAHR
+NHEJ
+FoSTES?
+MEI
+Chromothripsis
+
+If we identify SVs, can we determine how they occured?
+
+DELLY microhomology
+Conrad et al sequencing
+
 \section{High-Throughput Short-Read Sequencing}
+
+How can we detect SVs?
+
+Moving away from array based detection techniques..
+
+Review~\cite{Shendure:2008jh}
 
 \subsection{Sequencing Analysis Pipelines}\label{section_pipelines}
 
 \subsubsection{DNA Resequencing}
 
+de Pristo\cite{DePristo:2011fo}
+
 \subsubsection{RNA-seq}
+
+Olshack et al\cite{Oshlack:2010kr}
 
 \subsubsection{\emph{de novo} Assembly}
 
+A full discussion of \emph{de novo} assembly algorithms is beyond the scope of this section.
+
+Review\cite{Nagarajan:2013cq}
+
 \subsection{Dealing with Big Data}
+
+``Cloud computing and the DNA data race''\cite{Schatz:2010js}
+``The case for cloud computing in genome informatics''\cite{Stein:2010gp}
+``Translational Biomedical Informatics in the Cloud: Present and Future''\cite{Chen:2013ci} Collaboration...
+``Computational solutions to large-scale data management and analysis''\cite{Schadt:2010dp} Cloud and Heterogenous computing enviros
+\todo{maybe... ``Critical role of bioinformatics in translating huge amounts of next-generation sequencing data into personalized medicine''\cite{Hong:2013ev}}
+
+\todo{maybe \cite{Stein:2008gh}}
+
+GPU stuff
+ISAAC aligner~\cite{Raczy:2013hy}
