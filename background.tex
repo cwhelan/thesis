@@ -41,19 +41,46 @@ In addition to making SV detection difficult, short-read sequencing -- by the un
 
 \subsection{Sequencing Analysis Pipelines}\label{section_pipelines}
 
+To transform raw sequencing reads into usable information typically requires a series of discrete steps. As genomic bioinformatics has matured, these have been increasingly modularized and made into components that can be connected together to create analytics pipelines designed for particular applications. In this section, we will describe pipelines for several of the most popular applications of high-throughput sequencing.
+
 \subsubsection{DNA Resequencing}
 
-de Pristo\cite{DePristo:2011fo}
+As we mentioned in Chapter~\ref{chap_introduction}, resequencing projects attempt to identify variants present in the genomic DNA of samples from a population for which there exists a reference sequence. Variants can then be described in standard formats (typically VCF, the Variant Call Format~\cite{Danecek:2011gz}) that describes them in terms of the sequence and coordinates of the reference. These can then be used in study designs such as case control or genome wide association studies, or, in clinical contexts, can be searched directly using prior knowledge for variants likely to be associated with diseases or conditions.
 
-\subsubsection{RNA-seq}
+\begin{figure}
+\centering
+\includegraphics[width=1\textwidth]{figures/ng-806-F1.jpg}
+\caption{A full computational pipeline for high-throughput short-read DNA resequencing projects. This figure describes the Genome Analysis Toolkit (GATK) best practices pipeline, and is representative of the computational steps involved in a full resequencing pipeline designed to process many samples simultaneously. Reprinted by permission from Macmillan Publishers Ltd: Nature Genetics 43:5pp491-498~\cite{DePristo:2011fo}, copyright 2011}
+\label{gatk_pipeline}
+\end{figure}
 
-Olshack et al\cite{Oshlack:2010kr}
+Figure~\ref{gatk_pipeline} shows a high-level representation of the steps involved in a large-scale resequencing project using the Genome Analysis Toolkit~\cite{DePristo:2011fo}. The main components are:
 
-\subsubsection{\emph{de novo} Assembly}
+\begin{enumerate}
+\item \textbf{Quality Control and Data Preparation.} Although not shown in Figure~\ref{gatk_pipeline}, most pipelines typically begin by running a set of reports to assess the quality of the raw data, often with a standardized QC suite such as FastQC~\cite{fastqc} and data prepartion steps including trimming the portions of the input sequences that have base calls with low confidence scores or that contain sequence that matches known artifacts of the sequencing process (adapter trimming). These components operate on raw data in the FASTQ format~\cite{Cock:2010ky}.
 
-A full discussion of \emph{de novo} assembly algorithms is beyond the scope of this section.
+\item \textbf{Read Mapping.} In this phase, reads are mapped to the reference genome to find their most likely coordinates of origin. There exist a wide variety of short-read mappers that are heavily optimized for the task of aligning short DNA sequences to reference genomes (for a survey from several years ago see Li and Homer~\cite{Li:2010p10}). These typically use some form of a seed-and-extend strategy, in which exact matches of portions of the input read to the reference genome are found quickly using pre-computed indices. These indices can take the form of hash tables or some form of enhanced suffix array, or more popularly, the suffix trie equivalent FM-index~\cite{Ferragina:2000vl}, which uses the Burrows-Wheeler Transform (BWT)~\cite{Lossless94ablock-sorting} to convert a suffix trie into a highly compressed structure that is particularly useful for indexing highly repetitive geneme sequences while still giving fast (under most conditions linear in the length of the query pattern) lookup times. These exact matches are then extended using direct comparisons or through dynamic programming techniques such as the Smith-Waterman alignment algorithm~\cite{Smith:1981up}. Examples of hash-based aligners include Novoalign~\cite{novoalign} and MOSAIK~\cite{2013arXiv1309.1149L}, while BWA~\cite{Li:2009p836} and Bowtie 2~\cite{Langmead:2012jh} are popular BWT-based aligners. The output of this step is typically in the Sequence Alignment/Map (SAM) format~\cite{Li:2009vz}, which in addition to the reads stores their alignment coordinates on the reference genome, mapping quality scores, and information about mismatches to the reference.
 
-Review\cite{Nagarajan:2013cq}
+\item \textbf{Local Realignment, Duplicate Marking, and Recalibration.} In some pipelines there is often an additional quality control step after read mapping. PCR amplification in the preparation of sequencing libraries from DNA samples can give rise to duplicate fragments, which are typically identified and removed at this point. In addition, this step can include a more expensive realignment phase for groups of reads that appear to span short insertions and deletions (INDELs, typically under 40bp in size), and a recalibration of the base call quality scores reported by the sequencer based on the empirically observed distribution of mismatches between the reads and the reference sequence~\cite{DePristo:2011fo}.
+
+\item \textbf{Variant Calling.} The next phase includes calling of single nuclotide variants (SNVs), INDELs, and SVs. To call SNVs and indels, algorithms examine each possible variant indicated by mismatches of reads to the reference. They typically evaluate the number of reads supporting the variant against the total number of reads at that location, as well as prior beliefs, in Bayesian framework. Popular SNP and INDEL callers include the GATK~\cite{McKenna:2010p1051}, SAMtools~\cite{Li:2009vz}, and SOAPsnp~\cite{Li:2009p1236}. In some cases, multiple samples from a population are examined simultaneously, giving additional power to detect variants in that population. We will discuss SV callers in more detail in Chapter~\ref{chap_related_work}.
+
+\item \textbf{Integrative Analysis/Filtering.} After raw variants have been called, additional sources of outside information can be used to adjust their confidence scores or filter out false positives. This can include data from existing catalogues of genomic variants or knowledge about the population structure of the samples. If multiple samples from the same pedigree are being sequenced, data can be reconciled based on the principles of inheritance. DePristo et al.~\cite{DePristo:2011fo} describe one such set of filters appropriate for a large scale study involving many individuals from a population. In Section~\ref{section_aml_pipeline} we will describe a simple filtering scheme we implemented for a cancer sequencing project.
+
+\end{enumerate}
+
+\subsubsection{Other Sequencing Applications}
+
+In addition to DNA resequencing to detect genomic variants, there are many other applications of short-read sequencing. We will not go into detail on how each works, but will briefly list the goals and major informatic components of several of the most common so that we can address a full picture of the computational scaling challenges that short-read sequencing represents. 
+
+\begin{itemize}
+\item \textbf{RNA-seq.} In RNA-seq (see Oshlack et al.~\cite{Oshlack:2010kr} for a review), the goal is to interrogate the expression of genes across samples, for example in different disease conditions. Rather than sequencing DNA, libraries are constructed from RNA taken from the sample. Similarly to DNA resequencing, the reads are QC'd and aligned to the reference genome, although there are read mappers especially designed for RNA-seq that include functionality to map reads over exon junctions. The reads that map to annotated genes on the reference are then analyzed and quantified to determine  the genes that are being expressed in the sample, along with their relative expression levels and isoforms.
+
+\item \textbf{ChIP-seq} The intent of ChIP-seq (reviewed by Park~\cite{Park:2009gl}) is to determine the locations in which DNA, or the chromatin that contains it, is being bound by protein transcription factors or modified, with the ultimate goal of determining the modifications that are driving gene expression. In this case fragments of DNA that are bound to the protein of interest are preferentially separated and sequenced. After read trimming and mapping, the locations of binding events can be identified by searching for ``peaks'' of coverage on the reference genome.
+
+\item \textbf{\emph{de novo} Assembly} When there is no reference genome present for the organism being sequenced, the goal is to try to reconstruct the full sequence of the input genome based only on the short reads. A full discussion of \emph{de novo} assembly algorithms is beyond the scope of this section; for a review see Nagarajan and Pop~\cite{Nagarajan:2013cq}. The general approach is to build a graph representing overlaps between the reads in the form of either a string graph~\cite{Myers:2005iq}
+
+\end{itemize}
 
 \subsection{Dealing with Big Data}
 
