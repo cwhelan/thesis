@@ -1,10 +1,14 @@
 \chapter{Algorithms for Structural Variation Detection}\label{chap_related_work}
 
-Recent publications have divided the majority of popular SV detection algorithms into four categories~\cite{Alkan:2011p547}. The first three categories depend upon first aligning short reads to the reference genome. Read pair (RP) based methods use the distance between and orientation of the mappings of the sequenced ends of DNA fragments to identify the signatures of SVs. Read depth (RD) approaches identify regions of the genome with anomalous raw numbers of mapped reads, which may indicate the presence of deletions or duplications (a category of SV's known as \emph{Copy Number Variations} (CNVs)). Split Read (SR) approaches attempt to find local mappings of portions of individual reads that span SV breakpoints. Finally, assembly-based methods attempt to construct as much of the genome sequence as possible directly from the reads, without first mapping them to the reference genome. The constructed sequence is then compared to the reference to identify SVs. Beyond these four categories, several recent approaches have attempted to integrate more than one type of signal to increase accuracy. 
+In Chapter~\ref{chap_background}, we described the biological impact of SVs, and the development of short-read sequencing technology, along with the computational challenges they represent. In this chapter we review existing algorithms for SV detection based on short-read sequencing data, with an emphasis on the amount of data they integrate into their analysis and their ability to be parallelized or scaled. We will review the four major computational strategies for SV detection and examine several exemplar approaches in depth. Finally, as a demonstration of how SV detection can fit into the pipeline models we described in Chapter~\ref{chap_background}, we will describe a small pipeline for SV detection that we developed that used an existing tool, BreakDancer, to characterize SVs in a low-coverage cancer sample. 
+
+\section{The Four Signals of SVs in Sequencing Data}
+
+Most popular SV detection algorithms can be placed into one of four categories based on the type of signal it extracts and analyzed from sequencing data sets~\cite{Alkan:2011p547,Koboldt:2012gj}. The first three categories depend upon first aligning short reads to the reference genome. In Section~\ref{section_sequencing}, we described paired-end sequencing, in which both ends of a single DNA fragments are sequnced. Read pair (RP) based methods use the distance between and orientation of the mappings of these sequenced ends to identify the signatures of SVs. RP approaches are the most commonly used based on their ability to detect many types of SVs and their computational tractability~\cite{Alkan:2011p547}. Read depth (RD) approaches identify regions of the genome with anomalous coverage by read mappings, which may indicate the presence of copy number variations (CNVs). Split Read (SR) approaches attempt to find local mappings of portions of individual reads that span SV breakpoints. Finally, assembly-based methods attempt to construct as much of the genome sequence as possible directly from the reads, without first mapping them to the reference genome. The constructed sequence is then compared to the reference to identify SVs. Beyond these four categories, several recent approaches have attempted to integrate more than one type of signal to increase accuracy. 
 
 \section{Read Pair Approaches}\label{section_read_pair}
 
-Most read pair approaches begin by separating paired end mappings onto the reference genome into those that are \emph{concordant} and those that are \emph{discordant}. Discordant mappings deviate from the expected insert size or orientation of the fragment. These approaches then cluster the discordant mappings to find SVs with support from multiple discordantly mapped read pairs. Many of these approaches use only reads that are unambiguously mapped to the reference genome; this has the advantage of using the same set of alignments that are used for calling SNVs and indels in most sequencing pipelines. The BreakDancerMax component of BreakDancer~\cite{Chen:2009p3} is probably the most widely used of these algorithms. BreakDancer looks for regions of the genome that anchor more anomalous read pairs than expected according to its model; if two of these regions are connected by a minimum number of discordant read pairs, it calls an SV that links them. GASV~\cite{Sindi:2009gu}, PEMer~\cite{Korbel:2009dy}, and SVDetect~\cite{Zeitouni:2010p8} all operate on similar principles, differing primarily in the method used to cluster discordant read pairs that support the same potential SV call.
+Given correct mappings of paired reads to the reference genome and a reliable estimate of the length of the fragments from which the reads came, it is relatively straightforward to detect SVs. For example, Figure~\ref{rp_signatures} shows the signatures of insertions and deletions based on the insert size of paired-end mappings: deletions lead to a longer distance between read mappings than expected, insertions to a shorter distance. Similarly, because protocols determine the orientation in which the read will be sequenced, inversions can be detected if they diverge from expectations. Finally, inversions can be detected if the reads map to different chromosomes in the reference genome. These ideas were first applied to high-throughput short-read sequencing data by Korbel et al.~\cite{Korbel:2007p544} and Campbell et al.\cite{Campbell:2008p539}, who built upon strategies developed for analyzing SVs through the mapping of sequenced ends of larger DNA fragments (bacterial artifical chromosomes (BACs) and fosmids) from non-high-throughput sequencing data~\cite{Volik:2003fh,Raphael:2003ug,Tuzun:2005bp}.
 
 \begin{figure}
 \centering
@@ -13,25 +17,34 @@ Most read pair approaches begin by separating paired end mappings onto the refer
 \label{rp_signatures}
 \end{figure}
 
+Most read pair approaches use a basic strategy outlined in Figure~\ref{rp_method_workflow}. They begin by separating paired end mappings onto the reference genome into those that are \emph{concordant} and those that are \emph{discordant}, i.e. those which deviate from the expected insert size or orientation of the library. With only a few exceptions, discussed below, RP approaches discard concordant pairs and consider only discordant pairs for the remainder of their analysis. The next step is then to cluster the discordant mappings such that each cluster coherently supports a single candidate SV call. Finally, they filter or rank the candidate SV calls, for example only keeping those with support from multiple discordantly mapped read pairs. 
+
+The BreakDancerMax component of BreakDancer~\cite{Chen:2009p3} is probably the most widely used of these algorithms\footnote{Based on a sampling of Google Scholar citation counts as of 12/28/2013: BreakDancer, 270; VariationHunter, 153; PEMer, 111; GASV, 65; SVDetect, 46.}. As described above, BreakDancer first searches for discordant read pairs based on a hard threshold on the distance between mapped paired reads. It then looks for regions of the genome that anchor more discordant read pairs than expected according to its model; if two of these regions are connected by a minimum number of discordant read pairs, it calls an SV that links them. It calls breakpoints based on the inner boundaries of the two connected regions, as illustrated in Figure~\ref{rp_method_workflow} (d), and then assigns a confidence score by computing the likelihood of the SV based on a null model in which discordant read pairs are distributed across the genome according to a mixture Poisson model.
+
+Other RP-based tools include GASV~\cite{Sindi:2009gu}, PEMer~\cite{Korbel:2009dy}, and SVDetect~\cite{Zeitouni:2010p8} (adds additional filters). These all operate on similar principles, differing primarily in the method used to cluster discordant read pairs that support the same potential SV call. 
+
+Read pair approaches have the advantage of being theoretically able to detect any type of SV except for multiple copy number duplications. Their disadvantages stem from the fact that they depend on comparing mapping distances between reads to the unknown size of the fragments from which they came. This means that they cannot capture the breakpoints of SVs with single nucleotide resolution, and that they depend on having a sequencing library with a tight distribution of fragment sizes in order to have power. In addition, the fact that many SV breakpoints occur in regions with high sequence similarity to other parts of the genome, as discussed in Section~\ref{section_sv_mechanisms}, means that it may be difficult to unambigously map reads to those locations.
+
+
 \begin{figure}
 \centering
 \includegraphics[width=\textwidth]{figures/rp_method_workflow.pdf}
 \caption{The general algorithmic steps of a classic read-pair algorithm. a) The algorithm accepts a set of alignments of paired reads to the reference as input. b) The algorithm identifies discordant read pairs. c) Discordant pairs are clustered to find groups that could support the same algorithm. d) Clusters of discordant read pairs are filtered (in this case, by the number of supporting read pairs), and bounds on the potential breakpoints are identified.}
-\label{rm_method_workflow}
+\label{rp_method_workflow}
 \end{figure}
 
-A second group of RP methods attempt to include discordant read pairs which cannot be unambiguously mapped to the reference genome in their analysis, in an effort to improve sensitivity in repetitive regions of the genome. One approach to incorporating this type of information can be found in \emph{soft clustering} algorithms, which assign each ambiguously mapped read pair to one of its mappings such that it clusters with other discordant read pairs. These approaches include VariationHunter~\cite{Hormozdiari:2009p284}, which allocates ambiguously mapped reads by optimizing to a maximum parsimony explanation of all discordant reads; HYDRA~\cite{Quinlan:2010gf}, which takes a similar approach based on heuristics, and GASVPro~\cite{Sindi:2012kk}, which uses a Markov-Chain Monte Carlo sampling strategy to assign a read to its correct mapping. Even so, however, most methods use only a limited number of ambiguous discordant mappings per read pair, in part because of the storage and computational requirements necessary to process all or most ambiguous mappings of each read pair in a high-coverage data set.
+\subsection{Ambiguously Mapped Read Pairs}
 
-PEMer
-GASV
-SVDetect
-ChopSticks
-inGAP-sv
-Bellerophon
+Many of these approaches use only reads that are unambiguously mapped to the reference genome; this has the advantage of using the same set of alignments that are used for calling SNVs and indels in most sequencing pipelines. A second group of RP methods attempt to include discordant read pairs which cannot be unambiguously mapped to the reference genome in their analysis, in an effort to improve sensitivity in repetitive regions of the genome. One approach to incorporating this type of information can be found in \emph{soft clustering} algorithms, which assign each ambiguously mapped read pair to one of its mappings such that it clusters with other discordant read pairs. These approaches include VariationHunter~\cite{Hormozdiari:2009p284}, which allocates ambiguously mapped reads by optimizing to a maximum parsimony explanation of all discordant reads; HYDRA~\cite{Quinlan:2010gf}, which takes a similar approach based on heuristics, and GASVPro~\cite{Sindi:2012kk}, which uses a Markov-Chain Monte Carlo sampling strategy to assign a read to its correct mapping. Even so, however, most methods use only a limited number of ambiguous discordant mappings per read pair, in part because of the storage and computational requirements necessary to process all or most ambiguous mappings of each read pair in a high-coverage data set.
+
+\subsection{Concordant Read Pairs}\label{section_mixture_of_distributions}
+
+ChopSticks (refine sv calls with concordant pairs)~\cite{Yasuda:2012ij}
 
 Finally, CLEVER~\cite{Marschall:2012ek} took an alternative approach and showed that rather than classifying pairs as concordant or discordant and considering only those that are discordant, considering the distribution of all insert sizes allows the detection of smaller events. 
 
-Read pair approaches have the advantage of being theoretically able to detect any type of SV except for multiple copy number duplications. Their disadvantages stem from the fact that they depend on comparing mapping distances between reads to the unknown size of the fragments from which they came. This means that they cannot capture the breakpoints of SVs with single nucleotide resolution, and that they depend on having a sequencing library with a tight distribution of fragment sizes in order to have power.
+Another class of hybrid solution explicitly models the expected number of concordant and discordant pairs at normal and variant locations, effectively combining RP and RD strategies. MoDIL~\cite{Lee:2009da} and the BreakDancerMini component of BreakDancer~\cite{Chen:2009p3} model the distribution of insert sizes at candidate locations in the genome using a Gaussian mixture model. This has two advantages: because reads are not categorized as concordant or discordant based on a hard threshold, it is possible to detect smaller insertions and deletions; and these approaches can explicitly model the zygosity (presence of the variant on one or both of the pairs of chromosomes in the cell) of the variant in the sample, and potentially classify the variant as homozygous or heterozygous. The disadvantage of this approach in these implementations has been the computational requirements, although as we shall see in Chapter~\ref{chap_cloudbreak_impl}, this strategy can be effectively parallelized if approached in the right way.
+
 
 \section{Read Depth Approaches}
 
@@ -43,7 +56,7 @@ RD approaches are good at finding large deletions and duplications. As previousl
 
 Split-read (SR) methods look for breakpoints within individual reads by mapping portions of the read to different genomic locations. Due to the computational challenge involved in aligning reads to the reference genome while allowing for very large gaps between portions of the read, they use different strategies to guide the search. Pindel~\cite{Ye:2009p2} looks for paired reads in which one read in the pair aligned to the reference genome but the other did not. Supposing that the other read may contain a breakpoint, it searches the reference nearby for split read mappings. CREST~\cite{Wang:2011p1607} takes advantage of aligners that insert gaps at the ends of read alignments when there are many mismatches between the read and the reference, known as \emph{soft clipping}. By looking for multiple alignments with soft clips at the same reference coordinate, it can identify breakpoints. 
 
-SplazerS
+SplazerS~\cite{Emde:2012fb}
 
 Split read approaches can identify SVs with high specificity and single base breakpoint accuracy. They are particularly good at detecting smaller variants. However, their sensitivity is limited by coverage and the length of the reads. As read lengths increase with advances in sequencing technology, they will play a larger role in SV detection.
 
@@ -51,7 +64,7 @@ Split read approaches can identify SVs with high specificity and single base bre
 
 An alternative approach to mapping reads to the species reference to discover variants is to first attempt to directly assemble the genomic sequence from which the reads were generated (AS approaches). This typically involves the construction of a \emph{de Bruijn} graph to represent the overlapping k-mers in the entire read set, and then walking the graph to construct the longest possible unambiguous sequence of k-mers. Although most work in assembly is focused on \emph{de novo} assembly, when there is no reference for the organism being sequenced, one approach that is targeted at detecting SV's, among other goals, is Cortex~\cite{Iqbal:2012p1837}. Cortex uses the reference to guide assembly with a colored de Bruijn graph structure, and can therefore identify SVs by walking colored paths in its graph.
 
-While AS approaches can theoretically identify any type of SV, in practice assembly requires extremely high coverage (typically 100X). In addition, the computational requirements necessitate high-memory servers, making the task difficult to run on widely available, non-specialized hardware. Finally, genome assembly using short reads tends to collapse identical repeats, leading to a loss of visibility in repetitive regions of the genome and in segmental duplications\cite{Alkan:2011hs}. Because SVs are enriched in these repetitive regions, this could potentially lead to many false negative calls, and potentially even false positives if repetitive regions are assembled incorrectly, as a loss of a set of repeats could look like a deletion.
+While AS approaches can theoretically identify any type of SV, in practice assembly requires extremely high coverage (typically 100X). In addition, the computational requirements necessitate high-memory servers, making the task difficult to run on widely available, non-specialized hardware. Finally, genome assembly using short reads tends to collapse identical repeats, leading to a loss of visibility in repetitive regions of the genome and in segmental duplications~\cite{Alkan:2011hs}. Because SVs are enriched in these repetitive regions, this could potentially lead to many false negative calls, and potentially even false positives if repetitive regions are assembled incorrectly, as a loss of a set of repeats could look like a deletion.
 
 \section{Hybrid Approaches}
 
@@ -67,14 +80,19 @@ iSVP
 
 Other tools use one of the four principle approaches outlined above, but have incorporated other signals into their algorithms to improve accuracy. GASVPro~\cite{Sindi:2012kk} is primarily an RP based method, but it used RD signals to validate its predicted breakpoints, assuming that coverage directly around the breakpoint, and in predicted deleted regions, should be reduced. DELLY~\cite{Rausch:2012he} and PRISM~\cite{Jiang:2012cp}, meanwhile, use RP based approaches to identify candidate SV regions, and then guide an SR search for the exact breakpoints of those SVs. Typically, these modifications seem to improve specificity at the expense of sensitivity.
 
-SVSeq
-Meerkat
-SoftSearch
+SVSeq (split read mapping first, support by paired end read)~\cite{Zhang:2011ku}
+Meerkat (refine discordant RP preds with SR)~\cite{Yang:2013ih}
+SoftSearch (seprately look for soft clips and discordants, merge results)~\cite{Hart:2013fv}
+inGAP-sv
+Bellerophon (refine with softclips, look for signatures of particular types of translocations)
+
+\subsection{Machine Learning Based Approaches}
+
+SVMiner~\cite{Hayes:2012ia} follows a somewhat similar approach but does not explicitly model the distribution of insert sizes of read pairs; rather, it created feature vectors based on the number of concordant and discordant read pairs at each locus for deletions, or the number of pairs in each orientation for inversions, and fits a mixture model to the observed distribution of feature vectors across all candidate SVs.
+
+forestSV
+
 Zinfandel
-
-\subsection{Mixtures of Distributions}\label{section_mixture_of_distributions}
-
-Another class of hybrid solution explicitly models the expected number of concordant and discordant pairs at normal and variant locations, effectively combining RP and RD strategies. MoDIL~\cite{Lee:2009da} and the BreakDancerMini component of BreakDancer~\cite{Chen:2009p3} model the distribution of insert sizes at candidate locations in the genome using a Gaussian mixture model. This has two advantages: because reads are not categorized as concordant or discordant based on a hard threshold, it is possible to detect smaller insertions and deletions; and these approaches can explicitly model the zygosity (presence of the variant on one or both of the pairs of chromosomes in the cell) of the variant in the sample, and potentially classify the variant as homozygous or heterozygous. The disadvantage of this approach in these implementations has been the computational requirements, although as we shall see, this strategy lends itself to parallelization. SVMiner~\cite{Hayes:2012ia} follows a somewhat similar approach but does not explicitly model the distribution of insert sizes of read pairs; rather, it created feature vectors based on the number of concordant and discordant read pairs at each locus for deletions, or the number of pairs in each orientation for inversions, and fits a mixture model to the observed distribution of feature vectors across all candidate SVs.
 
 \section{Development of an SV Detection Pipeline for a Cancer Dataset}\label{section_aml_pipeline}
 
