@@ -10,7 +10,7 @@
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    width="533.90289"
-   height="161.60379"
+   height="164.7991"
    id="svg3045"
    version="1.1"
    inkscape:version="0.48.4 r9939"
@@ -45,10 +45,10 @@
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
-     inkscape:window-width="1682"
-     inkscape:window-height="904"
-     inkscape:window-x="1446"
-     inkscape:window-y="16"
+     inkscape:window-width="1440"
+     inkscape:window-height="878"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
      inkscape:window-maximized="0"
      fit-margin-top="0"
      fit-margin-left="0"
@@ -70,10 +70,10 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(-12.311401,-18.401245)">
+     transform="translate(-12.311401,-15.205933)">
     <rect
        y="146.64789"
-       x="440"
+       x="442"
        height="29.642859"
        width="36.071419"
        id="rect4088"
@@ -669,7 +669,7 @@
          y="27.362183"
          x="311.42859"
          id="tspan5100"
-         sodipodi:role="line">c</tspan></text>
+         sodipodi:role="line">b</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:16px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans;-inkscape-font-specification:Sans"
