@@ -4,7 +4,7 @@ In Chapter~\ref{chap_background}, we described the biological impact of SVs, and
 
 \section{The Four Signals of SVs in Sequencing Data}
 
-Most popular SV detection algorithms can be placed into one of four categories based on the type of signal it extracts and analyzed from sequencing data sets~\cite{Alkan:2011p547,Koboldt:2012gj}. The first three categories depend upon first aligning short reads to the reference genome. In Section~\ref{section_sequencing}, we described paired-end sequencing, in which both ends of a single DNA fragments are sequnced. Read pair (RP) based methods use the distance between and orientation of the mappings of these sequenced ends to identify the signatures of SVs. RP approaches are the most commonly used based on their ability to detect many types of SVs and their computational tractability~\cite{Alkan:2011p547}. Read depth (RD) approaches identify regions of the genome with anomalous coverage by read mappings, which may indicate the presence of copy number variations (CNVs). Split Read (SR) approaches attempt to find local mappings of portions of individual reads that span SV breakpoints. Finally, assembly-based methods attempt to construct as much of the genome sequence as possible directly from the reads, without first mapping them to the reference genome. The constructed sequence is then compared to the reference to identify SVs. Beyond these four categories, several recent approaches have attempted to integrate more than one type of signal to increase accuracy. 
+Most popular SV detection algorithms can be placed into one of four categories based on the type of signal it extracts and analyzed from sequencing data sets~\cite{Alkan:2011p547,Koboldt:2012gj}. The first three categories depend upon first aligning short reads to the reference genome. In Section~\ref{section_sequencing}, we described paired-end sequencing, in which both ends of a single DNA fragments are sequnced. Read pair (RP) based methods use the distance between and orientation of the mappings of these sequenced ends to identify the signatures of SVs. RP approaches are the most commonly used based on their ability to detect many types of SVs and their computational tractability~\cite{Alkan:2011p547}. Read depth (RD) approaches identify regions of the genome with anomalous coverage by read mappings, which may indicate the presence of copy number variations (CNVs). Split Read (SR) approaches attempt to find local mappings of portions of individual reads that span SV breakpoints. Finally, assembly-based methods attempt to construct as much of the genome sequence as possible directly from the reads, without first mapping them to the reference genome. The constructed sequence is then compared to the reference to identify SVs. Beyond these four categories, several recent approaches have attempted to integrate more than one type of signal to increase accuracy. In this review of published alogorithms, we will focus on those that are built to handle whole-genome DNA resequencing from a single sample at a time; there are of course other approaches for different applications, including SV detection from targeted resquencing data such as exome sequencing, and approaches which are designed only to operate on many samples at once.
 
 \section{Read Pair Approaches}\label{section_read_pair}
 
@@ -25,7 +25,6 @@ Other RP-based tools include GASV~\cite{Sindi:2009gu}, PEMer~\cite{Korbel:2009dy
 
 Read pair approaches have the advantage of being theoretically able to detect any type of SV except for multiple copy number duplications. Their disadvantages stem from the fact that they depend on comparing mapping distances between reads to the unknown size of the fragments from which they came. This means that they cannot capture the breakpoints of SVs with single nucleotide resolution, and that they depend on having a sequencing library with a tight distribution of fragment sizes in order to have power. In addition, the fact that many SV breakpoints occur in regions with high sequence similarity to other parts of the genome, as discussed in Section~\ref{section_sv_mechanisms}, means that it may be difficult to unambigously map reads to those locations.
 
-
 \begin{figure}
 \centering
 \includegraphics[width=\textwidth]{figures/rp_method_workflow.pdf}
@@ -39,12 +38,11 @@ Many of these approaches use only reads that are unambiguously mapped to the ref
 
 \subsection{Concordant Read Pairs}\label{section_mixture_of_distributions}
 
-ChopSticks (refine sv calls with concordant pairs)~\cite{Yasuda:2012ij}
+ChopSticks (homozygous deletions only, refine sv calls with concordant pairs)~\cite{Yasuda:2012ij}
 
 Finally, CLEVER~\cite{Marschall:2012ek} took an alternative approach and showed that rather than classifying pairs as concordant or discordant and considering only those that are discordant, considering the distribution of all insert sizes allows the detection of smaller events. 
 
 Another class of hybrid solution explicitly models the expected number of concordant and discordant pairs at normal and variant locations, effectively combining RP and RD strategies. MoDIL~\cite{Lee:2009da} and the BreakDancerMini component of BreakDancer~\cite{Chen:2009p3} model the distribution of insert sizes at candidate locations in the genome using a Gaussian mixture model. This has two advantages: because reads are not categorized as concordant or discordant based on a hard threshold, it is possible to detect smaller insertions and deletions; and these approaches can explicitly model the zygosity (presence of the variant on one or both of the pairs of chromosomes in the cell) of the variant in the sample, and potentially classify the variant as homozygous or heterozygous. The disadvantage of this approach in these implementations has been the computational requirements, although as we shall see in Chapter~\ref{chap_cloudbreak_impl}, this strategy can be effectively parallelized if approached in the right way.
-
 
 \section{Read Depth Approaches}
 
@@ -64,35 +62,73 @@ Split read approaches can identify SVs with high specificity and single base bre
 
 An alternative approach to mapping reads to the species reference to discover variants is to first attempt to directly assemble the genomic sequence from which the reads were generated (AS approaches). This typically involves the construction of a \emph{de Bruijn} graph to represent the overlapping k-mers in the entire read set, and then walking the graph to construct the longest possible unambiguous sequence of k-mers. Although most work in assembly is focused on \emph{de novo} assembly, when there is no reference for the organism being sequenced, one approach that is targeted at detecting SV's, among other goals, is Cortex~\cite{Iqbal:2012p1837}. Cortex uses the reference to guide assembly with a colored de Bruijn graph structure, and can therefore identify SVs by walking colored paths in its graph.
 
+\todo{GATK assembly haplotype caller?}
+
 While AS approaches can theoretically identify any type of SV, in practice assembly requires extremely high coverage (typically 100X). In addition, the computational requirements necessitate high-memory servers, making the task difficult to run on widely available, non-specialized hardware. Finally, genome assembly using short reads tends to collapse identical repeats, leading to a loss of visibility in repetitive regions of the genome and in segmental duplications~\cite{Alkan:2011hs}. Because SVs are enriched in these repetitive regions, this could potentially lead to many false negative calls, and potentially even false positives if repetitive regions are assembled incorrectly, as a loss of a set of repeats could look like a deletion.
 
 \section{Hybrid Approaches}
 
 Recently, approaches have started to appear that try to combine multiple signals in order to improve accuracy. These fall into two groups: those that independently execute more than one of the basic approaches described above and then integrate the results, and those that explicitly create new algorithms to process multiple signals simultaneously.
 
+\begin{table}
+\begin{center}
+\resizebox{\textwidth}{!}{
+\begin{tabular}{llll}
+\hline
+Algorithm	&	Primary Signal	&	Secondary Signals	&	Comments	\\
+\hline
+GASVPro~\cite{Sindi:2012kk}	&	RP	&	RD	&	support RP predictions with RD signals	\\
+DELLY~\cite{Rausch:2012he}	&	RP	&	SR	&	refine RP predictions with SR mappings	\\
+PRISM~\cite{Jiang:2012cp}	&	RP	&	SR	&	refine RP predictions with SR mappings	\\
+Meerkat~\cite{Yang:2013ih}	&	RP	&	SR	&	refine RP predictions with SR mappings	\\
+SoftSearch~\cite{Hart:2013fv}	&	RP	&	SR	&	support RP predictions with softclips	\\
+Bellerophon~\cite{Hayes:2013cq}	&	RP	&	SR	&	support RP predictions with softclips (translocations only)	\\
+SVSeq~\cite{Zhang:2011ku}	&	SR	&	RP	&	support SR predictions by at least one discordant RP	\\
+CNVer~\cite{Medvedev:2010bm}	&	RD	&	RP	&	support RD predictions with discordant RP mappings	\\
+inGAP-sv~\cite{Qi:2011gu}	&	RD	&	RP	&	refine RD predictions with discordant RP mappings	\\
+Nord et al.~\cite{Nord:2011ks}	&	RD	&	SR	&	support RD predictions with softclips	\\
+PeSV-Fisher~\cite{Escaramis:2013dm}	&	RP	&	RD	&	support RP predictions with RD signals	\\
+SVMerge~\cite{Wong:2010p1271}	&	Pipeline	&	SR,RP,RD,AS	&	combines BreakDancer, Pindel, RDXexplorer, others	\\
+HugeSeq~\cite{Lam:2012jy}	&	Pipeline	&	SR,RP,AS	&	combines BreakDancer, Pindel, BreakSeq, others	\\
+iSVP~\cite{Mimori:2013wx}	&	Pipeline	&	SR,AS,RP	&	deletions only; merges GATK, Pindel, BreakDancer	\\
+Zinfandel~\cite{Shen:2011ku}	&	Integrative	&	RP,RD	&	HMM based on RD, RP distances	\\
+forestSV~\cite{Michaelson:2012fj}	&	Integrative	&	RP,RD	&	Random forest classifiers on RD and RP features	\\
+SVMiner~\cite{Hayes:2012ia}	&	Integrative	&	RP,RD	&	GMM clustering based on RD, RP features	\\
+\hline
+\end{tabular}
+}
+\end{center}
+\caption{A summary of published SV detection algorithms that combine more than one sequencing signal. Most use one primary signal and then either discard those predictions not supported by the secondary signal or refine the breakpoints of the primary prediction using secondary data. Pipelines independently run several modules based on different signals and then merge the results. Integrative approaches generate primary predictions based on a statistical model that includes features from multiple signals.}
+\label{deletionGenotypeaccuracy}
+\end{table}
+
 \subsection{Pipelines}
 
-Pipelines such as SVMerge~\cite{Wong:2010p1271} and HugeSeq~\cite{Lam:2012jy} independently execute multiple algorithms of different types and then attempt to merge the results together. PeSV-Fisher~\cite{Escaramis:2013dm} implements classical RP and RD approaches and then integrates and filters the results. While the integration of these approaches could detect any type of variant detectable by any individual algorithm, it is difficult to combine results from different approaches in a principled manner, and the large number of dependencies and complex parameterization and configuration required has prevented adoption of these pipelines outside of the laboratories in which they were created.
+Pipelines such as SVMerge~\cite{Wong:2010p1271} and HugeSeq~\cite{Lam:2012jy} independently execute multiple algorithms of different types and then attempt to merge the results together. 
 
-iSVP
+While the integration of these approaches could detect any type of variant detectable by any individual algorithm, it is difficult to combine results from different approaches in a principled manner, and the large number of dependencies and complex parameterization and configuration required has prevented adoption of these pipelines outside of the laboratories in which they were created.
+
+iSVP (deletions only; merges GATK, Pindel, BreakDancer)~\cite{Mimori:2013wx}
 
 \subsection{Modified Basic Algorithms}
 
 Other tools use one of the four principle approaches outlined above, but have incorporated other signals into their algorithms to improve accuracy. GASVPro~\cite{Sindi:2012kk} is primarily an RP based method, but it used RD signals to validate its predicted breakpoints, assuming that coverage directly around the breakpoint, and in predicted deleted regions, should be reduced. DELLY~\cite{Rausch:2012he} and PRISM~\cite{Jiang:2012cp}, meanwhile, use RP based approaches to identify candidate SV regions, and then guide an SR search for the exact breakpoints of those SVs. Typically, these modifications seem to improve specificity at the expense of sensitivity.
 
-SVSeq (split read mapping first, support by paired end read)~\cite{Zhang:2011ku}
-Meerkat (refine discordant RP preds with SR)~\cite{Yang:2013ih}
-SoftSearch (seprately look for soft clips and discordants, merge results)~\cite{Hart:2013fv}
-inGAP-sv
-Bellerophon (refine with softclips, look for signatures of particular types of translocations)
+SVSeq~\cite{Zhang:2011ku} (split read mapping first, support by paired end read)
+Meerkat~\cite{Yang:2013ih} (refine discordant RP preds with SR)
+SoftSearch~\cite{Hart:2013fv} (seprately look for soft clips and discordants, merge results)
+inGAP-sv~\cite{Qi:2011gu} (RD, refined by RP)
+Bellerophon~\cite{Hayes:2013cq} (refine with softclips, look for signatures of particular types of translocations only)
+Nord et al.~\cite{Nord:2011ks} (RD, refine with softclips)
+PeSV-Fisher~\cite{Escaramis:2013dm} implements classical RP and RD approaches and then integrates and filters the results.
 
 \subsection{Machine Learning Based Approaches}
 
 SVMiner~\cite{Hayes:2012ia} follows a somewhat similar approach but does not explicitly model the distribution of insert sizes of read pairs; rather, it created feature vectors based on the number of concordant and discordant read pairs at each locus for deletions, or the number of pairs in each orientation for inversions, and fits a mixture model to the observed distribution of feature vectors across all candidate SVs.
 
-forestSV
+forestSV~\cite{Michaelson:2012fj}
 
-Zinfandel
+Zinfandel~\cite{Shen:2011ku} (HMM based on DOC, mate pair distance)
 
 \section{Development of an SV Detection Pipeline for a Cancer Dataset}\label{section_aml_pipeline}
 
