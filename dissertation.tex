@@ -79,7 +79,7 @@
 \DeclareMathOperator*{\argmax}{arg\,max}
 \newcommand{\degree}{\ensuremath{^\circ}}
 
-\includeonly{framework}
+%\includeonly{breakpoint-analysis,future-work}
 
 \begin{document}
 
@@ -111,11 +111,12 @@
 % abstract page without his title.
 %
  %\foursigstrue | \fivesigstrue but don't define BOTH to be true!!
-\foursigstrue
+\fivesigstrue
 \principaladviser{Dr. Kemal S\"onmez}{Associate Professor}
 \secondreader{Dr. Brian Roark \\Research Scientist, Google, Inc.}
 \firstreader{Dr. Izhak Shafran \\Associate Professor}
 \thirdreader{Dr. Lucia Carbone \\Assistant Professor, Dept. of Behavioral Neuroscience}
+\fourthreader{Dr. Steven Bedrick \\Assistant Professor}
 
 % This is the expected date that the board of trustee's sign your thesis. They
 % meet four times a year and the dates can be obtained from either the Office
@@ -137,7 +138,7 @@
 % stage.
 %
 % The below creates the title page, etc.
-%\beforepreface
+\beforepreface
 
 % This is a sample dedication. It should be vertically centered in the page.
 % Since the style format doesn't do it for you automatically, you can use
@@ -151,11 +152,19 @@
 % This is a sample acknowledgements page. As in the dedication, it should
 % be centered vertically in the page.
 %
-\ignore{\prefacesection{Acknowledgments}
+\prefacesection{Acknowledgments}
 \vfill
-\indent Words.
+\indent This thesis would not be possible without my co-advisors, Kemal S\"onmez and Lucia Carbone. Kemal has been an excellent mentor and a great friend. He helped me to develop many ideas that went into this thesis, and I am most thankful for his skill for pointing me in new directions when I was discouraged or had painted myself into a corner. 
+
+Lucia has also been a terrific role model and an inspiring scientific leader. The day I was given the chance to collaborate with her and her lab was my luckiest moment at OHSU. Lucia has taught me tons of biology, given me the opportunity to work on tremendously exciting projects, and gone out of her way many times to introduce me to members of the genomics community; in particular, I owe a great debt of gratitude to her for bringing me annually to the Biology of Genomes meeting at Cold Spring Harbor. Lucia has given me data to work with, and introduced me to the problem of structural variation detection. This thesis could not exist without her. I would also like to thank the other members of the Carbone Lab, who have been a pleasure to work with: Larry Wilhelm, Josh Meyer, Nathan Lazar, Liz Terhune, and Kim Nevonen.
+
+I would also like to thank Brain Roark and Zak Shafran for all of the great help they've given me. Brian is a fabulous teacher and always provided excellent feedback and made himself available for questions or just to talk. Cloudbreak started as a project in a course taught by Zak and Richard Sproat on problem solving with large clusters, which provided me with the core idea that eventually turned into this thesis. Zak has done a great deal of other things for me as well: providing me with ideas to use in my research; inviting me to explore new topics in machine learning with him and his group; and last but not least aquiring and helping to configure and administer the Hadoop compute clusters at CSLU, without which this work would not be possible. On that last note, I would also like to thank cluster administrators who have put up with my sometimes taxing usage of our compute resources, including Rob Stites and Jason Brooks.
+
+I would also like to acknowledge members of the broader genomics community who have provided feedback and encouragement for my projects, including Bob Handsaker, Steve McCarroll, and Ben Raphael.
+
+Finally, my greatest thanks go to my wife Sarah and my son Colin, who displayed tremendous patience in putting up with their husband and father's graduate-school lifestyle. Sarah's support, encouragement, and love have been an integral component of this work, without which it could never have happened.
 \vfill
-}
+
 % Uncomment the line below if you don't want a list of tables to be printed.
 \tablespagefalse
 
@@ -167,7 +176,7 @@
 \afterpreface
 
 % Abstract
-%\include{abstract}
+\include{abstract}
 
 % This is where the main body of the thesis starts
 %
@@ -197,7 +206,7 @@
 \bibliographystyle{acm}
 % Single space the bibliography to save space.
 \begin{singlespace}
-%\bibliography{thesis}
+\bibliography{thesis}
 \end{singlespace}
 %\printbibliography
 
