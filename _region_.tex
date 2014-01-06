@@ -1,6 +1,10 @@
 \message{ !name(dissertation.tex)}% $Id: phd-thesis-proposal.tex,v 1.5 2008/10/22 12:32:30 rlunsford Exp $
 %
 \documentclass [11pt] {report}
+\makeatletter
+\let\orig@xfloat\@xfloat
+\makeatother
+
 \usepackage{lscape}		% Allows tables and figures in landscape mode
 \usepackage{ohsu-thesis-proposal_3-2012}		% This package is the ohsu thesis style stuff
 % \brokenpenalty=100		% uncomment this to see bad word breaks at EOP
@@ -12,23 +16,43 @@
 \usepackage{amssymb}
 %\usepackage[style=acm]{biblatex}
 %\renewbibmacro{in:}{%
-%  \ifentrytype{article}{}{%
-%  \printtext{\bibstring{in}\intitlepunct}}}
+% \ifentrytype{article}{}{%
+% \printtext{\bibstring{in}\intitlepunct}}}
 %\addbibresource{nm.bib}
 
+\usepackage{etoolbox}
+\makeatletter
+\let\@xfloat\orig@xfloat
+\patchcmd{\@xfloat}{\columnwidth}{\columnwidth\def\baselinestretch{\@ne}}{}{}
+\makeatother
+
+\usepackage{amsfonts}
+\usepackage{amsmath}
 \usepackage{algorithm}
 \usepackage[noend]{algpseudocode}
 \usepackage{url}
-\usepackage{amsfonts}
-\usepackage{amsmath}
-
 \usepackage{multirow}
+\usepackage{authblk}
+\usepackage{rotating}
+\usepackage{xr}
+
+\usepackage[T1]{fontenc}
+
+% \usepackage{algorithm}
+% \usepackage[noend]{algpseudocode}
+% \usepackage{url}
+% \usepackage{amsfonts}
+% \usepackage{amsmath}
+% \usepackage{authblk}
+% \usepackage{rotating}
+% \usepackage{xr}
+
 
 
 \renewcommand\floatpagefraction{.9}
 \renewcommand\topfraction{.9}
 \renewcommand\bottomfraction{.9}
-\renewcommand\textfraction{.1}   
+\renewcommand\textfraction{.1} 
 \setcounter{totalnumber}{50}
 \setcounter{topnumber}{50}
 \setcounter{bottomnumber}{50}
@@ -42,85 +66,135 @@
 \newcommand{\todo}[1]{}
 \newcommand{\todolater}[1]{}
 
-\newcommand{\dcm}[1]{dialogue coordination mechanisms}
+\makeatletter
+\let\latex@xfloat=\@xfloat
+\def\@xfloat #1[#2]{%
+ \latex@xfloat #1[#2]%
+ \def\baselinestretch{1}
+ \@normalsize\normalsize
+ \normalsize
+}
+\makeatother
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+\newcommand{\degree}{\ensuremath{^\circ}}
+
+%\includeonly{cloudbreak-evaluation}
 
 \begin{document}
 
-\message{ !name(dissertation.tex) !offset(124) }
+\message{ !name(dissertation.tex) !offset(-3) }
 
 
-\begin{algorithm}[h]
-\algrenewcommand\algorithmicprocedure{\textbf{job}}
-  \begin{algorithmic}[1]
-    \Procedure{Alignment}{}
-    \Function{Map}{$\textrm{ReadPairId }rpid, \textrm{ReadId }r, \textrm{ReadSequence }s, \textrm{ReadQuality }q$}
-    \ForAll{$ \textrm{Alignments }a \in \textsc{Align}(<s,q>)$}
-    \State $\textsc{Emit}(\textrm{ReadPairId }rpid, \textrm{Alignment }a)$
-    \EndFor
-    \EndFunction
-    \Function{Reduce}{$\textrm{ReadPairId }rpid, \textrm{Alignments }a_{1,2,\ldots}$}
-    \State $\textrm{AlignmentPairList }ap \gets \textsc{ValidAlignmentPairs}(a_{1,2,\ldots})$
-    \State $\textsc{Emit}(\textrm{ReadPairId }rp, \textrm{AlignmentPairList } ap)$
-    \EndFunction
-    \EndProcedure
+% Specify your title here. The "titleline" field should have no line breaks
+% in it.
+%
+\title{Detecting and Analyzing Genomic Structural Variation using Distributed Computing}
+\titleline{Detecting and Analyzing Genomic Structural Variation using Distributed Computing}
 
-    \Procedure{Compute SV Features}{}
-    \Function{Map}{$\textrm{ReadPairId }rp, \textrm{AlignmentPairList }ap$}
-    \ForAll{$ \textrm{AlignmentPairs }<a_1,a_2>  \in ap$}
-    \ForAll{$ \textrm{GenomicLocations }l \in \textsc{Loci }(a_1,a_2)$}
-    \State $ \textrm{ReadPairInfo }rpi \gets <\textrm{InsertSize}(a_1,a_2), \textrm{AlignmentScore}(a_1,a_2)>$
-    \State $\textsc{Emit}(\textrm{GenomicLocation }l, \textrm{ReadPairInfo }rpi)$
-    \EndFor
-    \EndFor
-    \EndFunction
-    \Function{Reduce}{$\textrm{GenomicLocation }l, \textrm{ReadPairInfos }rpi_{1,2,\ldots}$}
-    \State $\textrm{SVFeatures } \phi_l \gets \Phi(\textrm{InsertSizes }i_{1,2,\ldots}, \textrm{AlignmentScores }q_{1,2,\ldots})$
-    \State $\textsc{Emit}(\textrm{GenomicLocation }l, \textrm{SVFeatures } \phi_l)$
-    \EndFunction
-    \EndProcedure
+% Your name (full name, no initials)
+%
+\author{Christopher Whelan}
 
-    \Procedure{Call SVs}{}
-    \Function{Map}{$\textrm{GenomicLocation }l, \textrm{SVFeatures } \phi_l$}
-    \State $\textsc{Emit}(\textrm{Chromosome}(l), <l,\phi_l>)$
-    \EndFunction
-    \Function{Reduce}{$\textrm{Chromosome }c, \textrm{GenomicLocation } l_{1,2,\ldots},\phi_{1,2,\ldots}$}
-    \State $\textrm{StructuralVariationCalls } svs_c \gets \textsc{PostProcess }(\phi_{1,2,\ldots})$
-    \EndFunction
-    \EndProcedure
-  \end{algorithmic}
-\caption{The algorithmic framework for SV calling in MapReduce.}
-\label{cb_algo}
-\end{algorithm}
+% Your previous degree. If you have more than one, use line breaks e.g.,
+% \predegrees{degree1 \\ degree2}
+%
+\prevdegrees{A.B. Computer Science, Harvard University, 1997}
+	
+	% Heirarchy info
+	\discipline{Computer Science \& Engineering}
+	\division{Center for Spoken Language Understanding}
+	\dept{Institute on Development and Disability}
+	\school{School of Medicine}
+	\university{Oregon Health \& Science University}
 
+% The following information is for the signature page.
+% Note that the definition for principal adviser uses two fields.
+% This was needed so that the adviser's name could be placed on the
+% abstract page without his title.
+%
+ %\foursigstrue | \fivesigstrue but don't define BOTH to be true!!
+\fivesigstrue
+\principaladviser{Dr. Kemal S\"onmez}{Associate Professor}
+\secondreader{Dr. Brian Roark \\Research Scientist, Google, Inc.}
+\firstreader{Dr. Izhak Shafran \\Associate Professor}
+\thirdreader{Dr. Lucia Carbone \\Assistant Professor, Dept. of Behavioral Neuroscience}
+\fourthreader{Dr. Steven Bedrick \\Assistant Professor}
 
-% \input{cloudbreak-implementation}
-\chapter{Cloudbreak}
-Our Cloudbreak software package can be seen as an implementation of the general framework defined above. In particular, Cloudbreak implements the two user-defined function described above as follows:
+% This is the expected date that the board of trustee's sign your thesis. They
+% meet four times a year and the dates can be obtained from either the Office
+% of Admissions and Records (Margaret Day) or from the department secretary.
+% In 1991 they were meeting the fourth Monday of each quarter, e.g.,
+% January, April, July, October.
+\grantdate{June}{2013}
 
-\begin{description}
-\item[\sc{Loci}] Because we are detecting deletions and short insertions, we map ReadPairInfos from each possible alignment to the genomic locations overlapped by the implied internal insert between the reads. For efficiency, we define a maximum detectable deletion size of 25,000bp, and therefore alignment pairs in which the ends are more than 25kb apart, or in the incorrect orientation, map to no genomic locations.
-\item[$\Phi$] To compute features for each genomic location, we follow \cite{Lee:2009da}, who observed that if all mappings are correct, the insert sizes implied by mappings which span a given genomic location should follow a Gaussian mixture model (GMM) whose parameters depend on whether a deletion or insertion is present at that locus (Supplementary Figure \ref{insert_size_mixes}). Briefly: if there is no indel, the insert sizes implied by spanning alignment pairs should follow the distribution of actual fragment sizes in the sample, which is typically modeled as normally distributed with mean $\mu$ and standard deviation $\sigma$. If there is a homozygous deletion or insertion of length $l$ at the location, $\mu$ should be shifted to $\mu + l$, while $\sigma$ will remain constant. Finally, in the case of a heterozygous event, the distribution of insert sizes will follow a mixture of two normal distributions, one with mean $\mu$, and the other with mean $\mu + l$, both with an unchanged standard deviation of $\sigma$, and mixing parameter $\alpha$ that describes the relative weights of the two components. Because the mean and standard deviation of the fragment sizes are selected by the experimenter and therefore known \emph{a priori} (or at least easily estimated based on a sample of alignments), we only need to estimate the mean of the second component at each locus, and the mixing parameter $\alpha$.
+% If you want to copyright your thesis/dissertation remove the line below.
+\copyrightfalse		% True by default
 
-To handle incorrect and ambiguous mappings, we assume that in general they will not form normally distributed clusters in the same way that correct mappings will, and therefore use an outlier detection technique to filter the observed insert sizes for each location. We sort the observed insert sizes and define as an outlier an observation whose $k$th nearest neighbor is more than $n\sigma$ distant, where $k = 3$ and $n = 5$. In addition, we rank all observations by the estimated probability that the mapping is correct and use an \emph{adaptive quality cutoff} to filter observations: we discard all observations where the estimated probability the mapping is correct is less than the score of the maximum quality observation minus a constant $c$. This allows the use of more uncertain mappings in repetitive regions of the genome while restricting the use of low-quality mappings in unique regions. Defining $\textsc{Mismatches}(a)$ to be the number of mismatches between a read and the reference genome in the alignment $a$, we approximate the probability $p^{k}_c$ of each end alignment being correct by:
+% The year of the copyright; usually same as the date the Board of Trustees
+% sign the thesis. This won't be printed if \copyrightfalse
+\copyrightyear{2013}
 
-\[ p^{k}_c(a^{k}_{m,i}) = \frac{\exp({-\textsc{Mismatches}(a^{k}_{m,i})/2)}}{\sum_j{\exp(-\textsc{Mismatches}(a^{k}_{m,j})/2)}} \]
+% The prefatory section of this style is normally used for the Dedication
+% and/or Acknowledgements. You might not want to put this into your thesis
+% until the end, to avoid generating it when you are still in the writing
+% stage.
+%
+% The below creates the title page, etc.
+\beforepreface
 
-And then multiply $p_c(a^{1}_{m,i})$ and $p_c(a^{2}_{m,i})$ to approximate the likelihood that the pair is mapped correctly.
+% This is a sample dedication. It should be vertically centered in the page.
+% Since the style format doesn't do it for you automatically, you can use
+% the following technique.
+\ignore{\prefacesection{Dedication}
+\vfill
+\begin{center}
+\end{center}
+\vfill
+}
+% This is a sample acknowledgements page. As in the dedication, it should
+% be centered vertically in the page.
+%
+\ignore{\prefacesection{Acknowledgments}
+\vfill
+\indent Words.
+\vfill
+}
+% Uncomment the line below if you don't want a list of tables to be printed.
+\tablespagefalse
 
-We fit the parameters of the GMM using the Expectation-Maximization algorithm. Let $Y = y_{1,2, \ldots m}$ be the observed insert sizes at each location after filtering, and say the library has mean fragment size $\mu$ with standard deviation $\sigma$. We initialize the two components to have means $\mu$ and $\bar{Y}$, set the standard deviation of both components to $\sigma$, and set $\alpha = .5$. In the E step, we compute for each $y_i$ and GMM component $j$ the value $\gamma_{i,j}$, which is the normalized likelihood that $y_i$ was drawn from component $j$. We also compute $n_j = \sum_i{\gamma_{i,j}}$, the relative contributions of the data points to each of the two distributions. In the M step, we update $\alpha$ to be $n_2 - \left|Y\right|$, and set the mean of the second component to be $\frac{\sum_m{\gamma_{m,2}y_m}}{n_2}$. We treat the variance as fixed and do not update it, since under our assumptions the standard deviation of each component should always be $\sigma$. We repeat the E and M steps until convergence, or until a maximum number of steps has been taken.
+% Uncomment the line below if you don't want a list of figures to be printed.
+\figurespagefalse
 
-The features generated for each location $l$ include the log-likelihood ratio of the filtered observed data points under the fit GMM to their likelihood under the distribution $N(\mu,\sigma)$, the final value of the mixing parameter $\alpha$, and $\mu'$, the estimated mean of the second GMM component.
+% \afterpreface generates the table of contents, list of tables (optional),
+% and list of figures (optional).
+\afterpreface
 
-\item[\sc{PostProcess}] We convert our features along the genome to insertion and deletion calls by first extracting contiguous genomic loci where the log-likelihood ratio of the two models is greater than a given threshold. To eliminate noise we apply a median filter with window size 5. We end regions when $\mu'$ changes by more than 60bp ($2\sigma$), and discard regions where the average value of $\mu'$ is less than $\mu$ or where the length of the region differs from $\mu'$ by more than $\mu$.
-\end{description}
+% Abstract
+%\include{abstract}
 
-% \input{evaluation}
+% This is where the main body of the thesis starts
+%
+\body
+%\setcounter{chapter}{6}
 
+\include{introduction}
 
-% \input{machine-learning}
-% \input{bp-analysis}
-% \input{summary}
+\include{background}
 
+\include{related_work}
+
+\include{framework}
+
+\include{cloudbreak-implementation}
+
+\include{cloudbreak-evaluation}
+
+\include{crf}
+
+\include{breakpoint-analysis}
+
+\include{future-work}
 
 
 % The library likes numbers rather than the `alpha' style.
@@ -144,4 +218,5 @@ The features generated for each location $l$ include the log-likelihood ratio of
 %of publications.
 
 \end{document}
-\message{ !name(dissertation.tex) !offset(-147) }
+
+\message{ !name(dissertation.tex) !offset(-222) }

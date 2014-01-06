@@ -13,7 +13,7 @@ Given correct mappings of paired reads to the reference genome and a reliable es
 \begin{figure}
 \centering
 \includegraphics[width=\textwidth]{figures/rp_signatures.pdf}
-\caption{Detecting deletions and insertions from the distance between mappings of paired reads. For the case of a deletion, a fragment with a 310bp internal insert size is created from the sample DNA, in a region in which 250bp has been deleted relative to the reference. The two reads when mapped to the reference will be 460bp apart, providing evidence for a deletion if we expect the internal insert size to be approximately 300bp. A 310bp internal insert size fragment that overlaps a 150bp insertion in the sample, conversely, will give a distance between reads of 180bp when mapped to the reference.}
+\caption[Detecting deletions and insertions from the distance between mappings of paired reads.]{Detecting deletions and insertions from the distance between mappings of paired reads. For the case of a deletion, a fragment with a 310bp internal insert size is created from the sample DNA, in a region in which 250bp has been deleted relative to the reference. The two reads when mapped to the reference will be 460bp apart, providing evidence for a deletion if we expect the internal insert size to be approximately 300bp. A 310bp internal insert size fragment that overlaps a 150bp insertion in the sample, conversely, will give a distance between reads of 180bp when mapped to the reference.}
 \label{rp_signatures}
 \end{figure}
 
@@ -26,7 +26,7 @@ Read pair approaches have the advantage of being theoretically able to detect an
 \begin{figure}
 \centering
 \includegraphics[width=\textwidth]{figures/rp_method_workflow.pdf}
-\caption{The general algorithmic steps of a classic read-pair algorithm. a) The algorithm accepts a set of alignments of paired reads to the reference as input. b) The algorithm identifies discordant read pairs. c) Discordant pairs are clustered to find groups that could support the same algorithm. d) Clusters of discordant read pairs are filtered (in this case, by the number of supporting read pairs), and bounds on the potential breakpoints are identified.}
+\caption[The general algorithmic steps of a classic read-pair algorithm.]{The general algorithmic steps of a classic read-pair algorithm. a) The algorithm accepts a set of alignments of paired reads to the reference as input. b) The algorithm identifies discordant read pairs. c) Discordant pairs are clustered to find groups that could support the same algorithm. d) Clusters of discordant read pairs are filtered (in this case, by the number of supporting read pairs), and bounds on the potential breakpoints are identified.}
 \label{rp_method_workflow}
 \end{figure}
 
@@ -96,7 +96,7 @@ SVMiner~\cite{Hayes:2012ia}	&	Integrative	&	RP,RD	&	GMM clustering based on RD, 
 \end{tabular}
 }
 \end{center}
-\caption{A summary of published SV detection algorithms that combine more than one sequencing signal. Most use one primary signal and then either discard those predictions not supported by the secondary signal or refine the breakpoints of the primary prediction using secondary data. Pipelines independently run several modules based on different signals and then merge the results. Integrative approaches generate primary predictions based on a statistical model that includes features from multiple signals.}
+\caption[A summary of published SV detection algorithms that combine more than one sequencing signal.]{A summary of published SV detection algorithms that combine more than one sequencing signal. Most use one primary signal and then either discard those predictions not supported by the secondary signal or refine the breakpoints of the primary prediction using secondary data. Pipelines independently run several modules based on different signals and then merge the results. Integrative approaches generate primary predictions based on a statistical model that includes features from multiple signals.}
 \label{table_hybrid_sv_approaches}
 \end{table}
 

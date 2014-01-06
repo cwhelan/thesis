@@ -1,7 +1,7 @@
 \chapter{Analysis of Evolutionary Breakpoint Features}
 \label{chap_breakpoint_analysis}
 
-This chapter describes a data analysis project unrelated to the algorithmic development of Cloudbreak and its extensions, although it is related at the biological level because it deals with genome breakpoints and rearrangements. In addition to being able to locate genomic breakpoints, we also seek to understand the genomic contexts in which they are located to gain insights into their origins. As we discussed in Chapter~\ref{chap_background}, the sequence features of the genome that neighbor structural variations can leave clues about the mechanisms that caused the rearrangements, as in the cases of large homologies that point to the activity of non-allelic homologous recombination (NAHR) or the microhomologies that indicate non-homologous end joining (NEHJ). In this chapter we examine a set of structural variations that have reshaped a genome at the evolutionary timescale: the chromosomal rearrangements of the gibbon genome. We analyze the locations in which the gibbon genome has been rearranged relative to humans and the other apes, first using a smaller set of breakpoint data, and then using the entire gibbon genome reference sequence created by the International Consortium for Sequencing and Annotation of the Gibbon Genome. The associations we discover could help to provide insights into the mechanisms by which the gibbon genome was rearranged.\todo{and perhaps its structure and function} The main contributions of this chapter are 1) the statistical analysis of the enrichment or depletion of certain genomic features in regions of the gibbon genome that have participated in genomic breakpoints, 2) development of an open-source software tool that can harness compute clusters to conduct permutation analysis for statistical enrichment of features in the genome, and 3) a novel, cross-species analysis of the locations of binding sites of the transcription factor CTCF with respect to genome breakpoints in the gibbon family.
+This chapter describes a data analysis project unrelated to the algorithmic development of Cloudbreak and its extensions, although it is related at the biological level because it deals with genome breakpoints and rearrangements. In addition to being able to locate genomic breakpoints, we also seek to understand the genomic contexts in which they are located to gain insights into their origins. As we discussed in Chapter~\ref{chap_background}, the sequence features of the genome that neighbor structural variations can leave clues about the mechanisms that caused the rearrangements, as in the cases of large homologies that point to the activity of non-allelic homologous recombination (NAHR) or the microhomologies that indicate non-homologous end joining (NEHJ). In this chapter we examine a set of structural variations that have reshaped a genome at the evolutionary timescale: the chromosomal rearrangements of the gibbon genome. We analyze the locations in which the gibbon genome has been rearranged relative to humans and the other apes, first using a limited set of breakpoint data, and then using the entire gibbon genome reference sequence created by the International Consortium for Sequencing and Annotation of the Gibbon Genome. The associations we discover could help to provide insights into the mechanisms by which the gibbon genome was rearranged.\todo{and perhaps its structure and function} The main contributions of this chapter are 1) the statistical analysis of the enrichment or depletion of certain genomic features in regions of the gibbon genome that have participated in genomic breakpoints, 2) development of an open-source software tool that can harness compute clusters to conduct permutation analysis for statistical enrichment of features in the genome, and 3) a novel, cross-species analysis of the locations of binding sites of the transcription factor CTCF with respect to genome breakpoints in the gibbon family.
 
 \section{Background}
 
@@ -38,7 +38,7 @@ Systematically shifting the location of breakpoint regions by increments of 10 k
 \begin{figure}
 \centering
 \includegraphics[width=.85\textwidth]{figures/gibbon_bac_permutations.jpg}
-\caption{Enrichment of genomic features in regions of the human genome syntenic to gibbon breakpoint regions identified using BACs. Permutation tests were used to assess the overlap between the gibbon breakpoints and genomic features. (A) Segmental duplications; (B) \emph{Alu} elements; and (C) SVA elements. The black vertical line indicates the observed value for the breakpoints identified in the study. In all three cases it is evident that the genomic features have a higher overlap with the breakpoints than one could expect by chance. Figure reproduced from Capozzi et al.~\cite{Capozzi:2012bb}.}
+\caption[Enrichment of genomic features in regions of the human genome syntenic to gibbon breakpoint regions identified using BACs.]{Enrichment of genomic features in regions of the human genome syntenic to gibbon breakpoint regions identified using BACs. Permutation tests were used to assess the overlap between the gibbon breakpoints and genomic features. (A) Segmental duplications; (B) \emph{Alu} elements; and (C) SVA elements. The black vertical line indicates the observed value for the breakpoints identified in the study. In all three cases it is evident that the genomic features have a higher overlap with the breakpoints than one could expect by chance. Figure reproduced from Capozzi et al.~\cite{Capozzi:2012bb}.}
 \label{gibbon_bac_permutations}
 \end{figure}
 
@@ -57,7 +57,7 @@ Breakpoint regions are depleted for genes, but enriched for \emph{Alu} elements 
 \begin{figure}
 \centering
 \includegraphics[width=.9\textwidth]{figures/gibbon_genome_histograms.pdf}
-\caption{Enrichment or depletion of gibbon genome breakpoints for several features. The number of overlaps between the 1kb regions flanking gibbon-human synteny breakpoints and segmental duplications, \emph{Alu} elements, and genes in the gibbon genome is shown by the arrow labeled ``breakpoints''. Histograms represent the random distribution for these overlap counts obtained by permuting the locations of the breakpoints 100,000 times.}
+\caption[Enrichment or depletion of gibbon genome breakpoints for several features.]{Enrichment or depletion of gibbon genome breakpoints for several features. The number of overlaps between the 1kb regions flanking gibbon-human synteny breakpoints and segmental duplications, \emph{Alu} elements, and genes in the gibbon genome is shown by the arrow labeled ``breakpoints''. Histograms represent the random distribution for these overlap counts obtained by permuting the locations of the breakpoints 100,000 times.}
 \label{gibbon_genome_histograms}
 \end{figure}
 
@@ -66,7 +66,7 @@ Breakpoint regions are depleted for genes, but enriched for \emph{Alu} elements 
 \resizebox{\textwidth}{!}{
 \begin{tabular}{lrrr}
 \hline
-Feature	&	Num Breakpoints that Overlap	&	Quantile	&	Adjusted -1 * log(P-value) \\
+Feature	&	Breakpoints that Overlap	&	Quantile	&	Adjusted -1 * log(P-value) \\
 \hline
 \emph{Alu}	&	109	&	1.0000	&	8.8696 \\
 \emph{AluJ}	&	35	&	0.9952	&	3.2191 \\
@@ -81,14 +81,14 @@ WSSD Segmental Duplication	&	35	&	1.0000	&	8.8696 \\
 \end{tabular}
 }
 \end{center}
-\caption{Enrichment counts and scores of features in breakpoint flanking regions. For each feature type, we display the number of 1kb regions flanking breakpoints that overlap with a feature of that type, the quantile of that count in the empirical distribution obtained by permuting breakpoint flank locations 100,000 times, and the negative log FDR of that quantile treated as a p-value. Negative values indicate a depletion rather than an enrichment. Prior to FDR correction quantiles of zero were adjusted to p-values of 0.00001.}
+\caption[Enrichment counts and scores of features in gibbon breakpoint flanking regions.]{Enrichment counts and scores of features in breakpoint flanking regions. For each feature type, we display the number of 1kb regions flanking breakpoints that overlap with a feature of that type, the quantile of that count in the empirical distribution obtained by permuting breakpoint flank locations 100,000 times, and the negative log FDR of that quantile treated as a p-value. Negative values indicate a depletion rather than an enrichment. Prior to FDR correction quantiles of zero were adjusted to p-values of 0.00001.}
 \label{gibbon_genome_enrichment_pvals}
 \end{table}
 
 \begin{figure}
 \centering
 \includegraphics[width=1\textwidth]{figures/regionHitQuantiles.pdf}
-\caption{Enrichment or depletion of regions of the gibbon genome for various features, broken down by distance from the breakpoint. Positive y values are the negative log q-values of enrichment for each feature in the regions flanking the breakpoint of the size indicated on the x-axis. Negative y-values represent the q-values of depletion. Q values were calculated using the FDR correction under dependency procedure. The dotted line indicates an FDR threshold of 0.05. Breakpoints are enriched for \emph{Alu} elements, and particularly the \emph{AluS} subfamily, especially at distances of 750bp and 1000bp from the breakpoints. Breakpoints are also enriched for segmental duplications, depleted for genes, and enriched for CTCF binding sites (see Section~\ref{gibbon_ctcf_binding_sites}.)}
+\caption[Enrichment or depletion of regions of the gibbon genome for various features, broken down by distance from the breakpoint.]{Enrichment or depletion of regions of the gibbon genome for various features, broken down by distance from the breakpoint. Positive y values are the negative log q-values of enrichment for each feature in the regions flanking the breakpoint of the size indicated on the x-axis. Negative y-values represent the q-values of depletion. Q values were calculated using the FDR correction under dependency procedure. The dotted line indicates an FDR threshold of 0.05. Breakpoints are enriched for \emph{Alu} elements, and particularly the \emph{AluS} subfamily, especially at distances of 750bp and 1000bp from the breakpoints. Breakpoints are also enriched for segmental duplications, depleted for genes, and enriched for CTCF binding sites (see Section~\ref{gibbon_ctcf_binding_sites}.)}
 \label{gibbon_genome_enrich_by_distance}
 \end{figure}
 
@@ -101,7 +101,7 @@ In conjunction with our collaborator Larry Wilhelm, in addition to testing the c
 \begin{figure}
 \centering
 \includegraphics[height=.75\textheight]{figures/gibbon_genome_feature_shifts.pdf}
-\caption{The proportion of breakpoint flanking intervals (defined as the 1000bp intervals flanking exact breakpoint locations or gibbon-specific repeats located at the breakpoints) which overlap with a feature of interest, when the flanking intervals are shifted left or right from their actual locations. Breakpoints are located in locations enriched in \emph{Alu} (especially \emph{AluS}) and segmental duplications relative to their genomic neighborhoods, but which are depleted for genes relative to their genomic neighborhoods.}
+\caption[Shift analysis of breakpoint flanking region overlap with various features.]{The proportion of breakpoint flanking intervals (defined as the 1000bp intervals flanking exact breakpoint locations or gibbon-specific repeats located at the breakpoints) which overlap with a feature of interest, when the flanking intervals are shifted left or right from their actual locations. Breakpoints are located in locations enriched in \emph{Alu} (especially \emph{AluS}) and segmental duplications relative to their genomic neighborhoods, but which are depleted for genes relative to their genomic neighborhoods.}
 \label{gibbon_genome_feature_shifts}
 \end{figure}
 
@@ -128,7 +128,7 @@ We identified 52,685 gibbon CTCF binding sites from the eight individuals. We fo
 \begin{sidewaysfigure}
 \centering
 \includegraphics[width=1\textwidth]{figures/merged_CTCF_GL397331.pdf}
-\caption{An example of CTCF binding sites in a breakpoint region. The track labeled ``CTCF ChIP-seq'' shows merged read coverage depth from the eight gibbon CTCF ChIP-seq samples, clearly showing a peak representing a CTCF binding site. The ``Breakpoints'' track shows the location of a gibbon breakpoint region. This breakpoint also contains a protein-coding gene, GH2-202.}
+\caption[An example of CTCF binding sites in a breakpoint region.]{An example of CTCF binding sites in a breakpoint region. The track labeled ``CTCF ChIP-seq'' shows merged read coverage depth from the eight gibbon CTCF ChIP-seq samples, clearly showing a peak representing a CTCF binding site. The ``Breakpoints'' track shows the location of a gibbon breakpoint region. This breakpoint also contains a protein-coding gene, GH2-202.}
 \label{example_ctcf_breakpoint}
 \end{sidewaysfigure}
 
