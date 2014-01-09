@@ -37,7 +37,7 @@ While current approaches struggle with accuracy, they also often fail to conside
 
 One approach to scaling data analysis pipelines is to harness the power of distributed computing using frameworks that tie together clusters of servers. Google's MapReduce~\cite{Dean:2008p277} framework was designed to manage the storage and efficient processing of very large scale data sets across clusters of commodity servers. Hadoop is an open source project of the Apache Foundation which provides an implementation of the MapReduce programming framework as well as a distributed file system (HDFS) for distributing the redundant storage of large data sets across a cluster. Hadoop and MapReduce are rapidly becoming a standard in industrial data mining applications. However, they require the use of a specific programming model, which can make it difficult to design general-purpose algorithms for arbitrary sequencing analysis problems like SV detection. 
 
-This thesis presents several novel techniques for detecting SVs using distributed computing and machine learning, which derive from the development of an algorithmic framework for SV detection methods in MapReduce. In particular, the main contributions are:
+This dissertation presents several novel techniques for detecting SVs using distributed computing and machine learning, which derive from the development of an algorithmic framework for SV detection methods in MapReduce. In particular, the main contributions are:
 
 \begin{itemize}
  \item The description of an algorithmic framework for solving SV detection problems in Hadoop and MapReduce based on the computation of local features along the genome from paired end mappings (Chapter~\ref{chap_framework}).
