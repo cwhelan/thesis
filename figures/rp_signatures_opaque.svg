@@ -14,7 +14,7 @@
    id="svg4092"
    version="1.1"
    inkscape:version="0.48.4 r9939"
-   sodipodi:docname="rp_signatures.svg">
+   sodipodi:docname="rp_signatures_opaque.svg">
   <defs
      id="defs4094">
     <marker
@@ -54,15 +54,15 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="1.979899"
-     inkscape:cx="170.25874"
+     inkscape:cx="81.112779"
      inkscape:cy="63.268139"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
      showgrid="false"
      inkscape:window-width="1440"
      inkscape:window-height="833"
-     inkscape:window-x="104"
-     inkscape:window-y="0"
+     inkscape:window-x="13"
+     inkscape:window-y="8"
      inkscape:window-maximized="0"
      fit-margin-top="0"
      fit-margin-left="0"
@@ -156,14 +156,14 @@
          sodipodi:nodetypes="cc" />
     </g>
     <rect
-       style="opacity:0.28448277;fill:#ff2a2a;fill-opacity:1;fill-rule:nonzero;stroke:none"
+       style="opacity:1;fill:#ff2a2a;fill-opacity:1;fill-rule:nonzero;stroke:none"
        id="rect4689"
        width="11.428572"
        height="45.178574"
        x="210.71428"
        y="68.790749" />
     <path
-       style="opacity:0.28448277;fill:#ff2a2a;fill-opacity:1;fill-rule:nonzero;stroke:none"
+       style="opacity:1;fill:#ff2a2a;fill-opacity:1;fill-rule:nonzero;stroke:none"
        d="m 266.71429,68.790749 11.96428,0 L 306,113.07647 l -11.96428,0 z"
        id="rect4691"
        inkscape:connector-curvature="0"
@@ -440,9 +440,9 @@
        inkscape:connector-curvature="0"
        id="path5012"
        d="m 400.22952,68.790749 11.96428,0 11.66407,44.285721 -11.71175,0 z"
-       style="opacity:0.28448277;fill:#ff2a2a;fill-opacity:1;fill-rule:nonzero;stroke:none" />
+       style="opacity:1;fill:#ff2a2a;fill-opacity:1;fill-rule:nonzero;stroke:none" />
     <path
-       style="opacity:0.28448277;fill:#ff2a2a;fill-opacity:1;fill-rule:nonzero;stroke:none"
+       style="opacity:1;fill:#ff2a2a;fill-opacity:1;fill-rule:nonzero;stroke:none"
        d="m 468.30458,68.790749 -11.96428,0 -7.11838,44.285721 11.71174,0 z"
        id="path5014"
        inkscape:connector-curvature="0"
